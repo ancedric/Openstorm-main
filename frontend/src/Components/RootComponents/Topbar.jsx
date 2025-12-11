@@ -1,7 +1,7 @@
 import { useState } from "react";
 import UserComponent from "../../Authentication/user";
 import { useNavigate } from "react-router-dom";
-import logo2 from "../../assets\images\logo_2.png"
+import logo2 from "../../assets/images/logo_2.png"
 
 function Topbar() {
   const [isOpen, setIsOpen] = useState(false);
