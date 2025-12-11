@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useCallback, useEffect } from 'react';
 import api from '../../axiosConfig';
-import AuthContext from './AuthContext';
+import AuthContext from './authContext';
 import PropTypes from 'prop-types';
 
 // Constante pour 24 heures en millisecondes
