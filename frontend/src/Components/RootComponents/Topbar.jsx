@@ -1,6 +1,7 @@
 import { useState } from "react";
 import UserComponent from "../../Authentication/user";
 import { useNavigate } from "react-router-dom";
+import logo2 from "../../assets\images\logo_2.png"
 
 function Topbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,7 +20,7 @@ function Topbar() {
       <div className="topbar-div ">
         <div className="logo-img" onClick={backHome}>
             <img
-              src="frontend\src\assets\images\logo_2.png"
+              src={logo2}
               alt="logo"
             />
         </div>
@@ -30,7 +31,7 @@ function Topbar() {
             {!isOpen ? (
               <button onClick={toggleMenu}>
                 <img
-                  src="frontend\src\assets\icons\hamburger-menu.svg"
+                  src={logo2}
                   width="40px"
                   height="40px"
                 />
