@@ -1,0 +1,70 @@
+{
+  "hash": "f190d0e4",
+  "configHash": "1c180071",
+  "lockfileHash": "e3b0c442",
+  "browserHash": "796aabef",
+  "optimized": {
+    "axios": {
+      "src": "../../frontend/node_modules/axios/index.js",
+      "file": "axios.js",
+      "fileHash": "2c3cee86",
+      "needsInterop": false
+    },
+    "chart.js/auto": {
+      "src": "../../frontend/node_modules/chart.js/auto/auto.js",
+      "file": "chart__js_auto.js",
+      "fileHash": "078ddf11",
+      "needsInterop": false
+    },
+    "prop-types": {
+      "src": "../../frontend/node_modules/prop-types/index.js",
+      "file": "prop-types.js",
+      "fileHash": "2cdee0bd",
+      "needsInterop": true
+    },
+    "react": {
+      "src": "../../frontend/node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "01d1dad2",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../frontend/node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "fd20a69d",
+      "needsInterop": true
+    },
+    "react-dropzone": {
+      "src": "../../frontend/node_modules/react-dropzone/dist/es/index.js",
+      "file": "react-dropzone.js",
+      "fileHash": "2a213414",
+      "needsInterop": false
+    },
+    "react-router-dom": {
+      "src": "../../frontend/node_modules/react-router-dom/dist/index.js",
+      "file": "react-router-dom.js",
+      "fileHash": "f4d68104",
+      "needsInterop": false
+    },
+    "react-spinners": {
+      "src": "../../frontend/node_modules/react-spinners/esm/index.js",
+      "file": "react-spinners.js",
+      "fileHash": "8110eec9",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-WO76ZFIR": {
+      "file": "chunk-WO76ZFIR.js"
+    },
+    "chunk-UOCG2EX3": {
+      "file": "chunk-UOCG2EX3.js"
+    },
+    "chunk-RWSJJKP5": {
+      "file": "chunk-RWSJJKP5.js"
+    },
+    "chunk-UV5CTPV7": {
+      "file": "chunk-UV5CTPV7.js"
+    }
+  }
+}
