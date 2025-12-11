@@ -1,0 +1,128 @@
+.cash-ctn{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  border-bottom:2px solid #13032b;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+
+  .cash-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 10px;
+
+    .header-left{
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+
+      h3{
+        font-size: 1.5rem;
+        width: 100%;
+        text-align: left;
+        margin: 0;
+      }
+      input{
+        width: 250px;
+        height: 40px;
+        background-color: transparent;
+        border: 1px solid #13032b;
+        color: #13032b;
+        border-radius: 5px;
+        padding: 10px;
+        font-size: 1.2rem;
+        margin: 10px;
+      }
+      .search-btn{
+        width: 100px;
+        height: 40px;
+        background-color: #13032b;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all .3s ease-in-out;
+
+        &:hover{
+          background-color: #7446a1;
+        }
+      }
+    }
+    .header-right{
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-right: 100px;
+      p{
+        font-size:1.5rem;
+        font-weight: bold;
+      }
+
+      .reset-btn, .confirm-btn{
+        width: 100px;
+        height: 40px;
+        background-color: #13032b;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all .3s ease-in-out;
+
+        &:hover{
+          background-color: #7446a1;
+        }
+      }
+    }
+    
+  }
+  
+  .cash-data{
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    border-top: 1px solid #13032b;
+
+    .product-result{
+      width: 40%;
+      height: 60vh;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      padding-bottom: 80px;
+
+      scrollbar-width: none;
+    }
+    .cash-cart{
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      width: 60%;
+      height: 60vh;
+      /*overflow-y: scroll;*/
+      overflow: hidden;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-left: 1px solid #13032b;
+
+      .cart-amount{
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #13032b;
+      }
+    } 
+  }
+}
+.product-result::-webkit-srollbar{
+  display: none;
+  width: 0;
+}

@@ -1,0 +1,110 @@
+.pop {
+  position: fixed;
+  z-index: 300;
+  right: 15%;
+  bottom: -3%;
+  width: 40vw;
+  height: 70vh;
+  padding: 60px 20px;
+  border-radius: 13px;
+  background-color: #fff;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+  overflow-y: scroll;
+  overflow-x: hidden;
+  transition: all 0.8s ease;
+  display: flex;
+  flex-direction: column;
+  animation: slide-up .3s ease-in;
+  @media(max-width: 760px){
+    right: 5%;
+    width: 80%;
+  }
+  &::-webkit-scrollbar{
+    display:none;
+  }
+  h3{
+    color: #54129b;
+  }
+
+  .product-form{
+    position: relative;
+    width: 100%;
+
+    form{
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        .form-group{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 80%;
+            margin-bottom: 20px;
+            padding: 30px;
+            border: 1px solid #29064f;
+            border-radius: 10px;
+            label {
+                font-weight: thin;
+            }
+            input[type="text"], textarea, input[type="number"], select{
+                width: 100%;
+                padding: 10px;
+                font-size: 1rem;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                background-color: transparent;
+                color: #29064f;
+            }
+            input[type="file"]{
+                display: none;
+            }
+        }
+    }
+    .close-btn {
+        position: absolute;
+        top: -90px;
+        right: 5px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 40px;
+        height: 40px;
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        margin-top: 0;
+        margin-right: 0;
+    }
+  }
+    button {
+        margin-top: 10px;
+        width: 100%;
+        background-color: #54129b;
+        color: #eee;
+        transition: all .3s ease-in-out;
+        cursor: pointer;
+        &:hover{
+            background-color: #893cdb;
+        }
+    }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes slide-down {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}

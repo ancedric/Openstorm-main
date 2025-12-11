@@ -1,0 +1,38 @@
+.clock{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100px;
+  height: 10px;  
+  margin-left: 10px;
+  padding-left: 8px;
+  padding-right: 8px;
+  @media(max-width: 760px){
+    width: 150px;
+    height: 20px;
+  }
+}
+.open{
+  border: 2px solid #2ff750;
+  border-radius: 13px;
+  padding: 10px;
+}
+.closed{
+  border: 2px solid #f72f2f;
+  border-radius: 13px;
+  padding: 10px;
+}
+.isOpen{
+  background-color: #2ff750;
+  color:#fff;
+  border-radius: 13px;
+  margin-left: 10px;
+  height: 23px;
+}
+.isClosed{
+  background-color: #ee6262;
+  color: #fff;
+  border-radius: 13px;
+  margin-left: 10px;
+  height: 23px;
+}

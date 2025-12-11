@@ -1,0 +1,156 @@
+.container{
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+
+    h3{
+        width: 100%;
+        font-size: 2rem;
+        color: #3f1b6e;
+        text-align: center;
+    }
+    .dashboard-ctn{
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+
+        .header{
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-bottom: 2px solid #29064f;
+
+            .menu-item{
+                display: flex;
+                width: 100%;
+                padding: 0 10%;
+                margin: 0;
+                color: #29064f;
+                border-top-left-radius: 10px;
+                border-top-right-radius: 10px;
+                text-align: center; 
+                cursor: pointer;
+                transition: all .3s ease-in-out;
+                &:hover{
+                    background-color: #91849e;
+                }               
+            }
+            .selected{
+                border-top-left-radius: 10px;
+                border-top-right-radius: 10px;
+                margin: 5px;
+                background-color: #29064f;
+                color: #b689e4;
+                box-shadow: -3px -5px 10px rgba(0,0,0,0.5);
+                font-weight: bold;
+                &:hover{
+                    color: #5a2c8b;
+                }
+            }
+        }
+        .content{
+            width: 100%;
+            .table-ctn{
+                width: 100%;
+                min-width: 100vh;
+                .line{
+                    width: 100%;
+                    height: 50px;
+                    display:flex;
+                    justify-content: center;
+                    align-items: center;
+                    margin: 0;
+                    border-bottom: 2px solid #29064f;  
+
+                    .column{
+                        width: 450px;
+                        height: 40px;
+                        color: #29064f;
+                        padding: 10px;
+                        font-size: 0.8rem;
+                        text-align: center;
+                        border-right: 1px solid #29064f;
+                        box-sizing: border-box;
+                    }
+                    .column.hd{
+                        width: 450px;
+                        height: 40px;
+                        background-color: #29064f;
+                        color: #eee;
+                        font-size: 0.8rem;
+                        font-weight: bold;
+                        text-align: center;
+                        border-right: 1px solid #eee;
+                    }
+                }
+                .card{
+                    width: 250px;
+                    height: 300px;
+                    padding: 10px;
+                    background-color: #eee;
+                    box-shadow: 0 0 50px rgba(0, 0, 0, .3);
+                    margin: 10px;
+                    box-sizing: border-box;
+                    .card-img{
+                        width: 100%;
+                        height: 70%;
+                        overflow: hidden;
+
+                        img{
+                            width: 100%;
+                            height: 100%;
+                            object-fit: cover;
+                        }
+                    }
+                    .data{
+                        height: 30%;
+                        color: #29064f;
+                        padding: 0;
+                        .col{
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            width:100%;
+                            margin: 0;
+                            padding: 0;
+                            font-size: 0.9rem;
+                            text-align: left;
+
+                            .toggle{
+                                width: 40px;
+                                height: 25px;
+                                margin: 0;
+                                background-color: #927baa;
+                                border: 1px solid #29064f;
+                                border-radius: 20px;
+                                box-shadow: inset 0 0 20px rgba(0, 0, 0, .5);
+
+                                .toggle-btn{
+                                    width: 20px;
+                                    height: 20px;
+                                    background-color: #eee;
+                                    border-radius: 10px;
+                                    transition: all ease-in-out .3s;
+                                    transform: translateX(-30%);
+                                }
+                            }
+                            .toggle.active{
+                                background-color: #29064f;
+                                .toggle-btn{
+                                    transition: all ease-in-out .3s;
+                                    transform: translateX(30%);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+                
+        }
+    }
+}

@@ -1,0 +1,114 @@
+.pricing{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-top: 70px;
+
+  .pricing-header{
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #321aa1;
+  }
+  .prices{
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+    @media screen and (max-width: 760px){
+      flex-direction: column;
+      gap: 10px;
+    }
+    @media screen and (max-width: 480px){
+      flex-direction: column;
+      gap: 10px;
+    }
+    @media screen and (max-width: 360px){
+      flex-direction: column;
+      gap: 10px;
+    }
+    .price{
+      background-color: #eee;
+      border: 1px solid #321aa1;
+      color: #321aa1;
+      padding: 20px;
+      border-radius: 10px;
+      width: 200px;
+      height: auto;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      transition: all .3s ease-in-out;
+
+      &:hover{
+        box-shadow: 0 0 10px rgba(179, 5, 248, 0.5);
+        transform: scale(1.02);
+      }
+      @media screen and (max-width: 760px){
+        width: 150px;
+        height: 250px;
+        font-size: 0.8rem;
+      }
+      @media screen and (max-width: 480px){
+        width: 80%;
+        height: auto;
+        font-size: 0.7rem;
+      }
+      @media screen and (max-width: 360px){
+        width: 80%;
+        height: auto;
+        font-size: 0.7rem;
+      }
+      .top{
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .middle{
+        font-size: 1rem;
+        margin-bottom: 10px;
+
+        .cost{
+          font-size: 1.2rem;
+          font-weight: bold;
+        }
+      }
+      .bottom{
+        font-size: 0.8rem;
+        margin-top: 10px;
+
+        .plan-btn{
+          padding: 10px 20px;
+          background-color: #321aa1;
+          color: #fff;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          &:hover{
+            background-color: #54129b;
+          }
+        }
+      }
+
+    }
+    .price.suggestion{
+      background-color: #321aa1;
+      border: 1px solid #eee;
+      color: #eee;
+      padding: 20px;
+      border-radius: 10px;
+      width: 200px;
+      height: auto;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+
+      .plan-btn{
+        background-color: #eee;
+        color: #321aa1;
+        &:hover{
+          background-color: #54129b;
+          color: #eee;
+        }
+      }
+    }
+  }
+}
