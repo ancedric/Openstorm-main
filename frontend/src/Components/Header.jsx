@@ -1,5 +1,6 @@
 //import SignIn from "../Authentication/SignIn";
 import { Link } from 'react-router-dom'
+import logo1 from "./assets/images/logo_1.png"
 
 
 const Header = () => {
@@ -8,7 +9,7 @@ const Header = () => {
       <div>
         <div className="logo-img">
             <img
-              src="frontend\src\assets\images\logo_1.png"
+              src={logo1}
               alt="logo"
             />
         </div>

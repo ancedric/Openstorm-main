@@ -17,7 +17,7 @@ const app = express();
 // Configuration de CORS pour permettre les requêtes depuis les clients frontend
 const corsOptions = {
     // eslint-disable-next-line no-undef
-    origin: [process.env.VITE_FRONTEND_URL || 'http://localhost:5173', 'http://localhost:5174'],
+    origin: [process.env.FRONTEND_URL],//|| 'http://localhost:5173', 'http://localhost:5174'],
     credentials: true,
 };
 
@@ -25,7 +25,7 @@ app.use(cors(corsOptions));
 app.use(express.json()); // Middleware pour parser le JSON des requêtes
 
 // eslint-disable-next-line no-undef
-const port = process.env.VITE_PORT || 8082; // Utilisation de VITE_PORT comme défini dans .env
+const port = process.env.PORT || 8082; // Utilisation de VITE_PORT comme défini dans .env
 
 // Middleware de log pour le débogage
 app.use((req, res, next) => {
@@ -51,5 +51,5 @@ app.use('/renewals', renewalsRouter);
 app.listen(port, () => {
     console.log(`Connected to the server on localhost:${port}`);
     // eslint-disable-next-line no-undef
-    console.log(`Frontend URL autorisé: ${process.env.VITE_FRONTEND_URL || 'http://localhost:5173'}`);
+    console.log(`Frontend URL autorisé: ${process.env.FRONTEND_URL}`); //|| 'http://localhost:5173'}`);
 });
