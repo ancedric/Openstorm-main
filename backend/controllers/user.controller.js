@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 import * as user from '../models/user.js'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import dotenv from 'dotenv'
 

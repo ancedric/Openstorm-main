@@ -1,5 +1,5 @@
 import {supabase} from '../config/supabase.service.js'; // Importation du client Supabase
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const TABLE_NAME = 'users';
 
