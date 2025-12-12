@@ -1,6 +1,6 @@
 //import SignIn from "../Authentication/SignIn";
 import { Link } from 'react-router-dom'
-import logo1 from "../../assets/images/logo_1.png"
+import logo1 from "../assets/images/logo_1.png"
 
 
 const Header = () => {

@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 
-export const baseURL = 'http://localhost:8082';
+export const baseURL = 'https://openstorm.onrender.com';
 export const port = 8082;
 
 const instance = axios.create({
