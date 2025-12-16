@@ -106,6 +106,15 @@ const AuthProvider = ({ children }) => {
      * C'est ici qu'on gère le setShop et le setShowShopSetup.
      */
     const fetchShop = useCallback(async (userRef, shouldSetAppReady = true) => {
+        if (!userRef) {
+            console.warn("ATTENTION: fetchShop appelé sans userRef. Le chargement est terminé sans boutique.");
+            setShop(null);
+            setShowShopSetup(true);
+            if (shouldSetAppReady) {
+                setIsAppReady(true);
+            }
+            return; // Sortir immédiatement
+        }
         try {
             const TABLE_NAME = 'shops'
             //const response = await api.get(`/shops/get-user-shop/${userRef}`);
@@ -158,7 +167,7 @@ const AuthProvider = ({ children }) => {
                 if(bcrypt.compareSync(password, data[0].password)){
                     const res = data[0];
                     if (res) {
-                        localStorage.setItem('user', res);
+                        localStorage.setItem('user', JSON.stringify(res));
 
                         // Mettre à jour les états user et profile DIRECTEMENT
                         setUser(res);
@@ -236,7 +245,7 @@ const AuthProvider = ({ children }) => {
                 .limit(1);
 
                 if (data) {*/
-                    const userData = token;
+                    const userData = JSON.parse(token);
                     setUser(userData);
                     setProfile(userData);
                     setIsAuthenticated(true);
