@@ -1,6 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useCallback, useEffect } from 'react';
-import api from '../../axiosConfig';
+//import api from '../../axiosConfig';
+import bcrypt from 'bcryptjs';
+import supabase from '../../supabase.config';
 import AuthContext from './authContext';
 import PropTypes from 'prop-types';
 
@@ -29,7 +31,7 @@ const AuthProvider = ({ children }) => {
     // showShopSetup commence à false, il sera mis à jour par fetchShop
     const [showShopSetup, setShowShopSetup] = useState(false); 
     // Nouveau: Indique que la vérification initiale (auth + shop) est terminée
-    const [isAppReady, setIsAppReady] = useState(false); 
+    const [isAppReady, setIsAppReady] = useState(true); 
 
 
     /**
@@ -37,17 +39,31 @@ const AuthProvider = ({ children }) => {
      */
     const updateSubscriptionState = useCallback(async (shopRef, newRemainingDays) => {
         console.log("DEBUG: Mise à jour:", shopRef, newRemainingDays)
+        const TABLE_NAME = 'shops'
         try {
             console.log("DEBUG: Vérification de l'état d'activation de la boutique")
-            const response = await api.put(`/shops/update-subscription-state/${shopRef}`, {
+            /*const response = await api.put(`/shops/update-subscription-state/${shopRef}`, {
                 remainingActivationTime: newRemainingDays, 
                 last_update_time: new Date().toISOString() 
-            });
+            });*/
+            const last_update_time = new Date().toISOString() 
 
-            if (response.data && response.data.shop) {
+            const { data } = await supabase
+            .from(TABLE_NAME)
+            .update({ 
+                remainingactivationtime: newRemainingDays,
+                last_update_time
+            })
+            .eq('ref', shopRef)
+            .select()
+            .single();
+
+
+            if (data) {
+                console.log("DEBUG: shop:", data)
                 // Mettre à jour l'état local avec la nouvelle boutique renvoyée par le serveur
-                setShop(response.data.shop);
-                return response.data.shop;
+                setShop(data);
+                return data;
             }
         } catch (error) {
             console.error("Erreur lors de la mise à jour de l'état de l'abonnement:", error);
@@ -91,10 +107,16 @@ const AuthProvider = ({ children }) => {
      */
     const fetchShop = useCallback(async (userRef, shouldSetAppReady = true) => {
         try {
-            const response = await api.get(`/shops/get-user-shop/${userRef}`);
-            const shopData = response.data;
+            const TABLE_NAME = 'shops'
+            //const response = await api.get(`/shops/get-user-shop/${userRef}`);
+            const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .eq('userref', userRef)
+            .single();
 
-            if (shopData) {
+            if (data) {
+                const shopData = data;
                 // Boutique trouvée
                 const currentShop = shopData;
                 
@@ -105,7 +127,7 @@ const AuthProvider = ({ children }) => {
                 setShowShopSetup(false);
             } else {
                 // Aucune boutique trouvée: Afficher le formulaire de configuration
-                console.log("DEBUG: Aucune boutique trouvée. Affichage du ShopSetupForm.");
+                console.log("DEBUG: Aucune boutique trouvée. Affichage du ShopSetupForm.", error);
                 setShop(null); // S'assurer que shop est null
                 setShowShopSetup(true);
             }
@@ -123,12 +145,41 @@ const AuthProvider = ({ children }) => {
     }, [checkAndDecrementSubscription]);
 
     const signIn = useCallback(async (email, password) => {
+        const TABLE_NAME = 'users';
         try {
             // 1. Appel API pour la connexion
-            const response = await api.post('/user/login', { email, password });
+            //const response = await api.post('/user/login', { email, password });
+           const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .eq('email', email)
+            .limit(1);
+            if (data){
+                if(bcrypt.compareSync(password, data[0].password)){
+                    const res = data[0];
+                    if (res) {
+                        localStorage.setItem('user', res);
 
+                        // Mettre à jour les états user et profile DIRECTEMENT
+                        setUser(res);
+                        setProfile(res); // Remplacement de fetchProfile
+                        setIsAuthenticated(true);
+                        
+                        // Charger la boutique associée
+                        await fetchShop(res.ref);
+
+                        return { success: true };
+                    }
+                    } else {
+                    throw new Error("Mot de passe incorrect");
+                }
+            } else {
+                throw new Error("Utilisateur non trouvé");
+            }
+
+            
             // 2. Récupérer le token et les données utilisateur
-            const { token, user: userData } = response.data; 
+            /*const { token, user: userData } = response.data; 
 
             if (token && userData) {
                 // Stocker le token dans localStorage et mettre à jour l'instance axios
@@ -144,25 +195,25 @@ const AuthProvider = ({ children }) => {
                 await fetchShop(userData.ref);
 
                 return { success: true };
-            }
-            return { success: false, message: "Informations d'authentification incomplètes." };
+            }*/
+            return { success: false, message: `"Informations d'authentification incomplètes.", ${error}` };
 
         } catch (error) {
-            console.error("Erreur lors de la connexion:", error.response?.data?.message || error.message);
+            console.error("Erreur lors de la connexion:",  error.message);
             // Nettoyage en cas d'échec
             localStorage.removeItem('authToken');
-            delete api.defaults.headers.common['Authorization'];
+            //delete api.defaults.headers.common['Authorization'];
             setUser(null);
             setProfile(null);
             setIsAuthenticated(false);
             setShop(null);
-            return { success: false, message: error.response?.data?.message || "Erreur de connexion inconnue." };
+            return { success: false, message: "Erreur de connexion inconnue." };
         }
     }, [fetchShop]);
 
     const signOut = useCallback(() => {
         localStorage.removeItem('token');
-        delete api.defaults.headers.common['Authorization'];
+        //delete api.defaults.headers.common['Authorization'];
         setUser(null);
         setProfile(null);
         setShop(null);
@@ -172,26 +223,31 @@ const AuthProvider = ({ children }) => {
     }, []);
 
     const checkAuthStatus = useCallback(async () => {
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem('user');
         if (token) {
-            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            try {
+            //api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            /*try {
                 // Utiliser une route pour valider le token et obtenir les données utilisateur
-                const response = await api.get('/user/me'); // Assumons que cette route existe
-                const userData = response.data.user;
+                //const response = await api.get('/user/me'); // Assumons que cette route existe
+                const { data, error } = await supabase
+                .from(TABLE_NAME)
+                .select('*')
+                .eq('email', email)
+                .limit(1);
 
-                if (userData) {
+                if (data) {*/
+                    const userData = token;
                     setUser(userData);
                     setProfile(userData);
                     setIsAuthenticated(true);
                     await fetchShop(userData.ref);
-                } else {
-                    throw new Error("Données utilisateur invalides.");
-                }
-            } catch (error) {
+                /*} else {
+                    throw new Error("Données utilisateur invalides.", error);
+                }**/
+            /*} catch (error) {
                 console.error("Échec de la vérification initiale du token:", error);
                 signOut(); 
-            }
+            }*/
         }
     }, [signOut, fetchShop]);
 
@@ -199,12 +255,12 @@ const AuthProvider = ({ children }) => {
         checkAuthStatus();
     }, [checkAuthStatus]);
     // Hook d'initialisation au montage du composant pour la persistance de la session
-    useEffect(() => {
+    /*useEffect(() => {
         const checkSession = async () => {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('user');
             if (token) {
                 // Si un jeton existe, on le met pour les requêtes futures
-                api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                //api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
                 
                 try {
                     // Tenter de valider le jeton et de récupérer les infos de l'utilisateur
@@ -234,7 +290,7 @@ const AuthProvider = ({ children }) => {
         };
 
         checkSession();
-    }, [signOut, fetchShop]); 
+    }, [signOut, fetchShop]); */
     
     // Intervalle pour les sessions très longues: vérification toutes les 24h
     useEffect(() => {

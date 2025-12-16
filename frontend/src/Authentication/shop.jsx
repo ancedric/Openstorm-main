@@ -1,16 +1,24 @@
-import api from '../axiosConfig'
+import supabase from '../supabase.config'
 
 // Récupération des produits d'une boutique
 export const GetProducts = async (shopId) => {
   try {
-    const response = await api.get(`/products/get-shop-products/${shopId}`);
-    const data = response.data;
+    //const response = await api.get(`/products/get-shop-products/${shopId}`);
+    const {data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('shopref', shopId);
 
-    if (data.length===0) {
+    if (error) {
+      throw error;
+    }
+    const res = data;
+
+    if (res.length===0) {
       console.log("Aucun produit trouvé dans cette boutique");
       return [];
     }
-    return data;
+    return res;
   } catch (error) {
     console.error("Erreur lors de la récupération des produits :", error);
     return [];
@@ -19,14 +27,22 @@ export const GetProducts = async (shopId) => {
 
 export const GetAllProducts = async () => {
   try {
-    const response = await api.get(`/products/all-products`);
-    const data = response.data;
+    //const response = await api.get(`/products/all-products`);
 
-    if (data.length===0) {
+    const {data, error } = await supabase
+      .from('products')
+      .select('*');
+
+    if (error) {
+      throw error;
+    }
+    const res = data;
+
+    if (res.length===0) {
       console.log("Aucun produit trouvé");
       return [];
     }
-    return data;
+    return res;
   } catch (error) {
     console.error("Erreur lors de la récupération des produits :", error);
     return [];
@@ -35,14 +51,22 @@ export const GetAllProducts = async () => {
 
 export const GetAllShops = async () => {
   try {
-    const response = await api.get(`/shops/all-shops`);
-    const data = response.data;
+    //const response = await api.get(`/shops/all-shops`);
+    const {data, error } = await supabase
+      .from('shops')
+      .select('*');
+      
+    if (error) {
+      throw error;
+    }
+    
+    const res = data;
 
-    if (data.length===0) {
+    if (res.length===0) {
       console.log("Aucune boutique trouvée");
       return [];
     }
-    return data;
+    return res;
   } catch (error) {
     console.error("Erreur lors de la récupération des boutiques :", error);
     return [];
@@ -51,14 +75,23 @@ export const GetAllShops = async () => {
 
 export const GetAllUsers = async () => {
   try {
-    const response = await api.get(`/user/all-users`);
-    const data = response.data.users;
+    //const response = await api.get(`/user/all-users`);
+    
+    const {data, error } = await supabase
+      .from('users')
+      .select('*');
 
-    if (data.length===0) {
+      if(error) {
+        throw error;
+      }
+
+    const res = data;
+
+    if (res.length===0) {
       console.log("Aucun utilisateur trouvé");
       return [];
     }
-    return data;
+    return res;
   } catch (error) {
     console.error("Erreur lors de la récupération des utilisateurs :", error);
     return [];
@@ -67,14 +100,22 @@ export const GetAllUsers = async () => {
 
 export const GetAllRenewals = async () => {
   try {
-    const response = await api.get(`/renewals/all-renewals`);
-    const data = response.data.renewals;
+    //const response = await api.get(`/renewals/all-renewals`);
+    const {data, error } = await supabase
+      .from('renewals')
+      .select('*');
 
-    if (data.length===0) {
+      if(error) {
+        throw error;
+      }
+    
+    const res = data;
+
+    if (res.length===0) {
       console.log("Aucune demande de renouvellemnt trouvée");
       return [];
     }
-    return data;
+    return res;
   } catch (error) {
     console.error("Erreur lors de la récupération des demandes de renouvellement :", error);
     return [];
@@ -82,21 +123,45 @@ export const GetAllRenewals = async () => {
 };
 
 export const GetProduct = async (productId) => {
-  const res = await api.get(`/products/product/${productId}`)
-  if(!res.data.fetched){
-    console.log("Aucun produit trouvé")
-    return
+  //const res = await api.get(`/products/product/${productId}`)
+  
+  const {data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', productId)
+    .single();
+
+  if (error) {
+    console.error("Erreur lors de la récupération du produit :", error);
+    return null;
   }
-  return res.data.product
+  
+  const res = data;
+  if(res.length === 0){
+    console.log("Aucun produit trouvé")
+    return []
+  }
+  return res[0]
 }
 
 // Récupération des commandes
 const fetchProductsForOrder = async (order) => {
     try {
-        const productRes = await api.get(`/products/product/${order.productid}`);
+        //const productRes = await api.get(`/products/product/${order.productid}`);
+        
+        const {data, error} = await supabase
+            .from('products')
+            .select('*')
+            .eq('id', order.productid)
+            .single();
+            
+        if (error) {
+            throw error;
+        }
+
         return {
             ...order,
-            product: productRes.data
+            product: data
         };
     } catch (err) {
         console.error(`Erreur lors de la récupération du produit pour la commande ${order.id}:`, err);
@@ -107,17 +172,38 @@ const fetchProductsForOrder = async (order) => {
 // Fonction principale pour récupérer tous les paniers et leurs produits
 export const FetchCommands = async (shopId) => {
     try {
-        const cartRes = await api.get(`/carts/get-shop-carts/${shopId}`);
-        const cartsData = cartRes.data.carts || []
+        //const cartRes = await api.get(`/carts/get-shop-carts/${shopId}`);
+        
+        const { data, error } = await supabase
+        .from('carts')
+        .select('*')
+        .eq('shopid', shopId);
 
+        if (error) {
+            throw error;
+        }
+
+        const res = data;
+        const cartsData = res 
         if (cartsData.length === 0) {
             return [];
         }
 
         const cartsWithOrdersPromises = cartsData.map(async (cart) => {
             try {
-                const orderRes = await api.get(`orders/get-shop-orders/${cart.id}`);
-                const ordersData = orderRes.data.orders || [];
+                //const orderRes = await api.get(`orders/get-shop-orders/${cart.id}`);
+                const {data, error} = await supabase
+                    .from('orders')
+                    .select('*')
+                    .eq('cartid', cart.id);
+
+                if (error) {
+                    throw error;
+                }
+
+                const orderRes = data;
+                
+                const ordersData = orderRes;
 
                 const ordersWithProductsPromises = ordersData.map(fetchProductsForOrder);
                 const ordersWithProducts = await Promise.all(ordersWithProductsPromises);
@@ -142,9 +228,20 @@ export const FetchCommands = async (shopId) => {
 
 export const GetCart = async (userId) => {
   try {
-    const response = await api.get(`/carts/get-cart/${userId}`);
-    if (response.data) {
-      return response.data;
+    //const response = await api.get(`/carts/get-cart/${userId}`);
+    const {data, error } = await supabase
+    .from('carts')
+    .select('*')
+    .eq('userid', userId)
+    .single();
+
+    if (error) {
+      throw error;
+    }
+
+    const response = data;
+    if (response) {
+      return response;
     } else {
       console.log("No cart found for this user");
     }

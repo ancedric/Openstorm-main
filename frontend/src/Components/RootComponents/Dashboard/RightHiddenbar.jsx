@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 import './style.css'
 import { useEffect, useRef, useState } from "react";
@@ -12,7 +13,7 @@ import ShopSetupForm from "../../forms/shopSetupForm/ShopForm";
 import defaultShop from '../../../assets/images/default_shop.png'
 import { FetchCommands, GetProducts } from '../../../Authentication/shop';
 import useAuth from '../../../Authentication/Context/useAuth';
-import api, {baseURL} from '../../../axiosConfig';
+import supabase/*, {baseURL}*/ from '../../../supabase.config';
 import AddProductForm from '../../forms/addProduct/AddProduct';
 import ProductViewCard from '../../view/productView';
 import OrderCard from '../../cards/orderCard/OrderCard';
@@ -35,11 +36,6 @@ function RightHiddenbar() {
   const [viewProductOpen, setViewProductOpen] = useState(false)
   const [productToDisplay, setProductToDisplay] = useState(null)
   const [productsSalesData, setProductsSalesData] = useState([])
-
-  const [previousScrollPosition, setPreviousScrollPosition] = useState(
-    window.scrollY || document.documentElement.scrollTop
-  );
-  const [scrollToTop, setScrollToTop] = useState(false);
   const scrollContainerRef = useRef(null);
 
   /*--Gestion du catalogue--*/
@@ -61,12 +57,25 @@ function RightHiddenbar() {
 
   const updateDailyRemainingTime = async () => {
     try{
-      const newShop = await api.put(`/shops/update-remaining-activation-time/${shop.id}`, {plan: shop.remainingactivationtime - 1}, {
+      /*const newShop = await api.put(`/shops/update-remaining-activation-time/${shop.id}`, {plan: shop.remainingactivationtime - 1}, {
         headers: { 
         }
-      });
-      if (newShop) {
-        completeShopSetup(newShop.data.shop);
+      });*/
+      const {data, error} = await supabase
+        .from('shops')
+        .update({remainingactivationtime: shop.remainingactivationtime - 1})
+        .eq('id', shop.id)
+        .select()
+        .single();
+
+      const newShop = data;
+
+      if(error){
+        throw error
+      }
+
+      if (data) {
+        completeShopSetup(newShop);
         console.log("new shop:", newShop)
       }
     }
@@ -121,14 +130,21 @@ function RightHiddenbar() {
   
   const fetchDailySalesAPI = async (shopId) => {
       try {
-          const res = await api.get(`/sales/get-shop-sales/${shopId}`);
-          if(res.data.length === 0){
+          //const res = await api.get(`/sales/get-shop-sales/${shopId}`);
+          const {data, error } = await supabase
+            .from('dailysales')
+            .select('*')
+            .eq('shopid', shopId);
+          if (error) {
+              throw error;
+          }
+          if(data.length === 0){
             setDailySalesData([]);
             return
           }
-          const sales = res.data.salesData
+          const sales = data
           setTotalSales(sales.length)
-          setDailySalesData(res.data.salesData); 
+          setDailySalesData(data); 
       } catch (error) {
           console.error("Erreur lors de la récupération des ventes de la boutique :", error);
           setDailySalesData([]);
@@ -137,8 +153,18 @@ function RightHiddenbar() {
 
   const fetchProductSales = async (productId) =>{
     try{
-      const productData =  await api.get(`/orders/get-product-order/${productId}`)
-      const orders = productData.data.order 
+      
+      const {data, error} = await supabase
+        .from('orders')
+        .select('*')
+        .eq('productid', productId);
+                  
+      if (error) {
+          throw error;
+      } 
+      //const productData =  await api.get(`/orders/get-product-order/${productId}`)
+      
+      const orders = data 
       
       if (!orders){
         return []
@@ -148,10 +174,18 @@ function RightHiddenbar() {
       const uniqueProductIds = [...new Set(productIds)]
 
       const productsResponse = await Promise.all(uniqueProductIds.map(async (productid) => {
-        const product = await api.get(`/products/product/${productid}`)
-        return product.data
-      }))
+        //const product = await api.get(`/products/product/${productid}`)
+        const {data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productid)
+        .single();
 
+        if(error){
+          throw error;
+        }
+        return data
+      }))
       const ordersWithProducts = orders.map(order => {
         const product = productsResponse.find(prod => prod.id === order.productid)
         return {
@@ -185,12 +219,19 @@ const updateDailySales = async (itemsSold, salesAmount) => {
                 totalAmount: existingSale.totalAmount + salesAmount,
             };
             try{
-              const res = api.put(`/sales/update-daily-sale/${shop.id}`, {nbSales: existingSale.nbSale + itemsSold, totalAmount: existingSale.totalAmount + salesAmount, date: today})
-              if(!res.data.dailySales){
-                console.log(res.data.message)
-                return
+              //const res = api.put(`/sales/update-daily-sale/${shop.id}`, {nbSales: existingSale.nbSale + itemsSold, totalAmount: existingSale.totalAmount + salesAmount, date: today})
+              const {data, error} = supabase
+              .from('dailysales')
+              .update({nbsales: existingSale.nbSales + itemsSold, totalamount: existingSale.totalAmount + salesAmount})
+              .eq('shopid', shop.id)
+              .eq('date', today);
+
+              const res = data;
+              
+              if(error){
+                throw error
               }
-              return newDailySales;
+              return res;
             }
             catch(err){
               console.error("Erreur lors de la mise à jour du daily sale", err)
@@ -201,19 +242,25 @@ const updateDailySales = async (itemsSold, salesAmount) => {
         else {
           
           try{
-            const res = await api.post(`/sales/new-sale`, {shopId: shop.id, nbSales: itemsSold, totalAmount: salesAmount})
-            if(!res.data.dailySales){
-              console.log(res.data.message)
-              return
+            //const res = await api.post(`/sales/new-sale`, {shopId: shop.id, nbSales: itemsSold, totalAmount: salesAmount})
+            const {data, error} = await supabase
+            .from('dailysales')
+            .insert([{shopid: shop.id, nbsales: itemsSold, totalamount: salesAmount, date: today}]);
+            if (error) {
+              throw error;
             }
-            console.log(res.data.message)
+            if (!data || data.length === 0) {
+              console.log('No daily sale created');
+              return prevDailySales;
+            }
+            console.log('Daily sale added');
             return [
-                ...prevDailySales,
-                {
-                    date: today,
-                    nbSales: itemsSold,
-                    totalAmount: salesAmount,
-                }
+              ...prevDailySales,
+              {
+              date: today,
+              nbSales: itemsSold,
+              totalAmount: salesAmount,
+              }
             ];
           }
           catch(err){
@@ -414,7 +461,7 @@ const updateDailySales = async (itemsSold, salesAmount) => {
                   </div>
                   <div className="shopImage">
                     <img
-                      src={shop ? (shop.image ? `${baseURL}/media/${shop.image}` : defaultShop) : defaultShop}
+                      src={shop.image || defaultShop}
                       style={{ borderRadius: "13px" }}
                     />
                   </div>

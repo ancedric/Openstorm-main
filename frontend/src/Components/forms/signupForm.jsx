@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import{ baseURL } from '../../axiosConfig'
+import supabase from '../../supabase.config'
 import validation from '../../Authentication/validation';
 import Toast from '../toast';
-import axios from 'axios'
+import bcrypt from 'bcryptjs'
 import PropTypes from 'prop-types';
 
 function Signup({plan}) {
@@ -31,24 +31,37 @@ function Signup({plan}) {
     event.preventDefault();
     const validationErrors = validation(formData);
     setErrors(validationErrors);
-
+    const TABLE_NAME = 'users'
       if (validationErrors.email === '' && validationErrors.password === '' && validationErrors.termsAndConditions === ''){
-      setIsSubmitting(true)
-
-      await axios.post(`${baseURL}/user/register`, formData)
-        .then(res => {
-          console.log(res);
-          setToast({ message: "Inscription réussie !", type: 'success', visible: true });
-          setIsSuccess(true)
-          setTimeout(() => {
-            setToast({ ...toast, visible: false });
-          }, 3000);
-        })
-        .catch(err => {
+        setIsSubmitting(true)
+        
+        const salt = bcrypt.genSaltSync(10);
+        const hashedPassword = bcrypt.hashSync(formData.password, salt);
+        
+        const date = new Date().toISOString().split('T')[0];
+        const now = Date.now();
+        const year = new Date().getFullYear();
+        const ref = `USER-${year}-${now}`;
+      //await axios.post(`${baseURL}/user/register`, formData)
+        try{
+          const { data } = await supabase
+            .from(TABLE_NAME)
+            .insert([
+                { ref, firstname: formData.firstname, lastname: formData.lastname, email:formData.email, password: hashedPassword, phone:formData.phone, role:formData.role, plan:formData.plan, createdat: date }
+            ])
+            if(data){
+              console.log(data);
+              setToast({ message: "Inscription réussie !", type: 'success', visible: true });
+              setIsSuccess(true)
+              setTimeout(() => {
+                setToast({ ...toast, visible: false });
+              }, 3000);
+            }
+        }catch(err ){
           console.error(err);
           setToast({ message: 'Échec de l\'inscription. Veuillez réessayer.', type: 'error', visible: true });
           setIsSubmitting(false)
-        });
+        }
     }
   };
 
