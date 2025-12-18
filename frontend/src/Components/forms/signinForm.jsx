@@ -29,14 +29,23 @@ function Login() {
     if (validationErrors.email === '' && validationErrors.password === ''){
         setIsSubmitting(true);
         try {
-            signIn(formData.email, formData.password); 
+            const isSignedIn = await signIn(formData.email, formData.password); 
             
-            setToast({ message: 'Bienvenue!', type: 'success', visible: true });
-            
-            setTimeout(() => {
-                setToast({ ...toast, visible: false });
-                navigate('/home');
-            }, 3000);
+            if(isSignedIn.success){
+              setToast({ message: 'Bienvenue!', type: 'success', visible: true });
+              
+              setTimeout(() => {
+                  setToast({ ...toast, visible: false });
+                  navigate('/home');
+              }, 3000);
+            }else{
+              setToast({ message: isSignedIn.message, type: 'error', visible: true });
+              
+              setTimeout(() => {
+                  setToast({ ...toast, visible: false });
+                  navigate('/home');
+              }, 3000);
+            }
 
         } catch (error) {
             // Gérer les erreurs renvoyées par signIn

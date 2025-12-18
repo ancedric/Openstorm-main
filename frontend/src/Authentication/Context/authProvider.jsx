@@ -31,7 +31,7 @@ const AuthProvider = ({ children }) => {
     // showShopSetup commence à false, il sera mis à jour par fetchShop
     const [showShopSetup, setShowShopSetup] = useState(false); 
     // Nouveau: Indique que la vérification initiale (auth + shop) est terminée
-    const [isAppReady, setIsAppReady] = useState(true); 
+    const [isAppReady, setIsAppReady] = useState(false); 
 
 
     /**
@@ -232,31 +232,24 @@ const AuthProvider = ({ children }) => {
     }, []);
 
     const checkAuthStatus = useCallback(async () => {
-        const token = localStorage.getItem('user');
-        if (token) {
-            //api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            /*try {
-                // Utiliser une route pour valider le token et obtenir les données utilisateur
-                //const response = await api.get('/user/me'); // Assumons que cette route existe
-                const { data, error } = await supabase
-                .from(TABLE_NAME)
-                .select('*')
-                .eq('email', email)
-                .limit(1);
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            try {
+                const userData = JSON.parse(storedUser); 
+                
+                setUser(userData);
+                setProfile(userData);
+                setIsAuthenticated(true);
 
-                if (data) {*/
-                    const userData = JSON.parse(token);
-                    setUser(userData);
-                    setProfile(userData);
-                    setIsAuthenticated(true);
-                    await fetchShop(userData.ref);
-                /*} else {
-                    throw new Error("Données utilisateur invalides.", error);
-                }**/
-            /*} catch (error) {
-                console.error("Échec de la vérification initiale du token:", error);
-                signOut(); 
-            }*/
+                // fetchShop gère déjà le setIsAppReady(true)
+                await fetchShop(userData.ref); 
+                
+            } catch (e) {
+                console.error("Erreur de parsing JSON ou de chargement initial:", e);
+                signOut(); // signOut va réinitialiser les états et appeler setIsAppReady(true)
+            }
+        } else {
+            setIsAppReady(true); 
         }
     }, [signOut, fetchShop]);
 
