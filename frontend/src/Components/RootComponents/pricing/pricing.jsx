@@ -46,7 +46,7 @@ const Pricing = () => {
               </div>
               <div className='middle'>
                 <p>Check the health of your business each half year</p>
-                <p className='cost'>12 000 XAF</p>
+                <p className='cost'>25 000 XAF</p>
               </div>
               <div className='bottom'>
                 <Link to="/auth/biannual" className='plan-btn'>Subscribe</Link>
@@ -59,13 +59,13 @@ const Pricing = () => {
               </div>
               <div className='middle'>
                 <p>Enjoy the platform for a whole year without interruption, and follow your business progression simply and efficiently.</p>
-                <p className='cost'>20 000 XAF</p>
+                <p className='cost'>45 000 XAF</p>
               </div>
               <div className='bottom'>
                 <Link to="/auth/annual" className='plan-btn'>Subscribe</Link>
               </div>
             </div>
-            <div className='price'>
+            {/*<div className='price'>
               <div className='top'>
                 <h4>Enterprise</h4>
                 <p>The app is in your hands</p>
@@ -77,7 +77,7 @@ const Pricing = () => {
               <div className='bottom'>
                 <Link to="/auth/annual" className='plan-btn'>Download</Link>
               </div>
-            </div>
+            </div>*/}
           </div>
         </div>
         <Footer/>
