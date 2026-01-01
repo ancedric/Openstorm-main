@@ -2,13 +2,13 @@ import './style.css'
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 
-const Timer = ({shop}) => {
-  const [currentTime, setCurrentTime] = useState('');
+const Timer = ({ shop }) => {
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      const currentLocalTime = new Date().toLocaleTimeString(undefined, { timeZone: 'UTC'});
-      setCurrentTime(currentLocalTime);
+      // On stocke l'objet Date complet pour faciliter les calculs
+      setCurrentTime(new Date());
     }, 1000);
 
     return () => clearInterval(intervalId);
@@ -19,14 +19,20 @@ const Timer = ({shop}) => {
 
   const isOpen = () => {
     if (currentTime && closeTime && openTime) {
-      const currentTimeParts = currentTime.split(':');
-      const openTimeParts = openTime.split(':');
-      const closeTimeParts = closeTime.split(':');
+      // 1. Obtenir les secondes totales pour l'heure locale actuelle
+      const currentSeconds = 
+        currentTime.getHours() * 3600 + 
+        currentTime.getMinutes() * 60 + 
+        currentTime.getSeconds();
 
-      const currentSeconds = parseInt(currentTimeParts[0]) * 3600 + parseInt(currentTimeParts[1]) * 60 + parseInt(currentTimeParts[2]);
-      const openSeconds = parseInt(openTimeParts[0]) * 3600 + parseInt(openTimeParts[1]) * 60 + parseInt(openTimeParts[2]);
-      const closeSeconds = parseInt(closeTimeParts[0]) * 3600 + parseInt(closeTimeParts[1]) * 60 + parseInt(closeTimeParts[2]);
+      // 2. Parser les heures de la boutique (format attendu "HH:mm:ss")
+      const openParts = openTime.split(':').map(Number);
+      const closeParts = closeTime.split(':').map(Number);
 
+      const openSeconds = openParts[0] * 3600 + openParts[1] * 60 + (openParts[2] || 0);
+      const closeSeconds = closeParts[0] * 3600 + closeParts[1] * 60 + (closeParts[2] || 0);
+
+      // 3. Comparaison simple
       return currentSeconds >= openSeconds && currentSeconds <= closeSeconds;
     }
     return false;
@@ -34,13 +40,17 @@ const Timer = ({shop}) => {
 
   return (
     <div className={`clock ${isOpen() ? 'open' : 'closed'}`}>
-      {currentTime} <p className={`clock ${!isOpen() ? 'isClosed' : 'isOpen'}`}>{!isOpen() ? 'closed' : 'open'}</p>
+      {/* Affichage de l'heure locale formatée */}
+      {currentTime.toLocaleTimeString()} 
+      <p className={`clock ${!isOpen() ? 'isClosed' : 'isOpen'}`}>
+        {!isOpen() ? 'closed' : 'open'}
+      </p>
     </div>
   );
 };
 
 Timer.propTypes = {
-  shop : PropTypes.shape({
+  shop: PropTypes.shape({
     id: PropTypes.number.isRequired,
     openinghour: PropTypes.string.isRequired,
     closehour: PropTypes.string.isRequired,

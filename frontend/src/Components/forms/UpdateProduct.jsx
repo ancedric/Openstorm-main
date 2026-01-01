@@ -1,6 +1,7 @@
+/* eslint-disable no-unused-vars */
 import './addProduct/style.css'
 import { useState } from 'react'
-import api from '../../axiosConfig'
+import supabase from '../../supabase.config'
 import PropTypes from 'prop-types'
 
 // eslint-disable-next-line no-unused-vars
@@ -74,10 +75,46 @@ const UpdateProductForm = ({shop, products, close, onProductUpdated}) => {
         console.log('Datas:', productData)
 
         try {
-          const newProduct = await api.put(`/products/update-product/${productData.id}`,formData, {
+          /*const newProduct = await api.put(`/products/update-product/${productData.id}`,formData, {
             headers: { }
-          });
-        
+          });*/
+        //Enregister l'image
+            const fileExt = formData.image.name.split('.').pop();
+            const fileName = `${Date.now()}.${fileExt}`;
+            const filePath = `products/${fileName}`;
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from(import.meta.env.VITE_STORAGE_BUCKET_NAME)
+                .upload(filePath, formData.image);
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage
+                .from(import.meta.env.VITE_STORAGE_BUCKET_NAME)
+                .getPublicUrl(filePath);
+
+            const imageUrl = urlData.publicUrl;
+
+            const {data, error }= await supabase
+            .from('products')
+            .update([{
+              ref: formData.ref,
+              shopRef: shop.ref,
+              name: formData.name,
+              category: formData.category,
+              summary: formData.summary,
+              description: formData.description,
+              supplier: formData.supplier,
+              price: formData.price,
+              image: imageUrl
+            }])
+            .select()
+
+            if(error){
+              console.error('Erreur lors de la mise à jour du produit')
+              return
+            }
+            const newProduct = data
           if (newProduct) {
             onProductUpdated(newProduct.data.product);
             close()

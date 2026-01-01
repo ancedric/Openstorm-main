@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import useAuth from '../../../Authentication/Context/useAuth';
-import api from '../../../axiosConfig';
+import supabase from '../../../supabase.config';
 import {shopValidation} from '../../../Authentication/validation';
 import './style.css'
 import FileUploader from '../../FileUploader';
@@ -15,6 +15,7 @@ const ShopSetupForm = ({close}) => {
     const [shopImage, setShopImage] = useState(null);
     const [activation, setActivation] = useState(0);
     const [formData, setFormData] = useState({
+        ref: '',
         userRef: user.ref,
         shopname: '',
         activity: '',
@@ -38,6 +39,13 @@ const ShopSetupForm = ({close}) => {
     const handleFileChange = (file) => {
         setShopImage(file);
     };
+
+    //Creation de la ref
+    const now = Date.now();        
+    const year = new Date().getFullYear();
+    const _ref = `SHOP-${year}-${now}`;
+    setFormData((prev) => ({ ...prev, ref: _ref }));
+    
     const handleChange = (event) => {
         setFormData((prev) => ({ ...prev, [event.target.name]: event.target.value }));
     };
@@ -68,20 +76,54 @@ const ShopSetupForm = ({close}) => {
 
             // 3. AJOUTER LE FICHIER À PARTIR DE 'shopImage'
             if (shopImage) {
-                dataToSend.append('image', shopImage); // Le deuxième argument est l'objet File
+                dataToSend.append('image', shopImage); 
             } else {
-                // Gérer le cas où l'image est requise mais manquante
-                // dataToSend.append('image', null); // ou une autre valeur par défaut si nécessaire
+                dataToSend.append('image', null);
             }
 
-            const newShop = await api.post(`/shops/new-shop`, dataToSend, {
-                headers: { 
-                }
-            });
+            //On enregistre le fichier
+            const fileExt = dataToSend.image.name.split('.').pop();
+            const fileName = `${Date.now()}.${fileExt}`;
+            const filePath = `shops/${fileName}`;
 
+            // 2. Uploader l'image dans le bucket Supabase
+            // eslint-disable-next-line no-unused-vars
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from(import.meta.env.VITE_STORAGE_BUCKET_NAME)
+                .upload(filePath, dataToSend.image);
+
+            if (uploadError) throw uploadError;
+
+            // 3. Récupérer l'URL publique de l'image (optionnel, selon votre besoin)
+            const { data: urlData } = supabase.storage
+                .from(import.meta.env.VITE_STORAGE_BUCKET_NAME)
+                .getPublicUrl(filePath);
+
+            const imageUrl = urlData.publicUrl;
+        
+            const { data, error } = await supabase
+            .from('shops')
+            .insert([
+                {
+                    ref: dataToSend.ref,
+                    userRef: user.ref,
+                    shopname: dataToSend.name,
+                    activity: dataToSend.activity,
+                    openinghour: dataToSend.openingHour,
+                    closehour:dataToSend.closeHour,
+                    country: dataToSend.country,
+                    city: dataToSend.city,
+                    remainingactivationtime: activation,
+                    image: imageUrl
+                }
+            ])
+            .select();
+            if(error) throw error
+            
+            const newShop = data
             if (newShop) {
-                completeShopSetup(newShop.data);
-                fetchShop(user.ref)
+                await completeShopSetup(newShop);
+                await fetchShop(user.ref)
                 close();
                 setToast({message:"Boutique créée avec succès!", type:"success", visible: true});
             }

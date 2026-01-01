@@ -16,12 +16,17 @@ function Signup({plan}) {
     plan: plan,
     termsAndConditions: false,
   });
+  const [file, setFile] = useState(null);
 
   const [toast, setToast] = useState({ message: '', type: '', visible: false });
   const [errors, setErrors] = useState({});
   const [hidePassword, setHidePassword] = useState(true)
   const [ isSuccess, setIsSuccess ] = useState(false)
   const [ isSubmitting, setIsSubmitting ] = useState(false)
+
+  const handleImageUpload = (event) => {
+    setFile(event.target.files[0]);
+  };
 
   const handleInput = (event) => {
     setFormData(prev => ({ ...prev, [event.target.name]: event.target.value }));
@@ -34,9 +39,19 @@ function Signup({plan}) {
     const TABLE_NAME = 'users'
       if (validationErrors.email === '' && validationErrors.password === '' && validationErrors.termsAndConditions === ''){
         setIsSubmitting(true)
-        
+
+        const datas = new FormData();
+        datas.append("firstname", formData.firstname);
+        datas.append("lastname", formData.lastname);
+        datas.append("email", formData.email);
+        datas.append("password", formData.password);
+        datas.append("phone", formData.phone);
+        datas.append("role", formData.role);
+        datas.append("plan", formData.plan);
+        datas.append("image", file);
+
         const salt = bcrypt.genSaltSync(10);
-        const hashedPassword = bcrypt.hashSync(formData.password, salt);
+        const hashedPassword = bcrypt.hashSync(datas.password, salt);
         
         const date = new Date().toISOString().split('T')[0];
         const now = Date.now();
@@ -44,10 +59,27 @@ function Signup({plan}) {
         const ref = `USER-${year}-${now}`;
       //await axios.post(`${baseURL}/user/register`, formData)
         try{
+          const fileExt = datas.image.name.split('.').pop();
+          const fileName = `${Date.now()}.${fileExt}`;
+          const filePath = `users/${fileName}`;
+
+          // eslint-disable-next-line no-unused-vars
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from(import.meta.env.VITE_STORAGE_BUCKET_NAME)
+            .upload(filePath, datas.image);
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage
+              .from(import.meta.env.VITE_STORAGE_BUCKET_NAME)
+              .getPublicUrl(filePath);
+
+            const imageUrl = urlData.publicUrl;
+
           const { data } = await supabase
             .from(TABLE_NAME)
             .insert([
-                { ref, firstname: formData.firstname, lastname: formData.lastname, email:formData.email, password: hashedPassword, phone:formData.phone, role:formData.role, plan:formData.plan, createdat: date }
+                { ref, firstname: datas.firstname, lastname: datas.lastname, email:datas.email, password: hashedPassword, phone:datas.phone, role:datas.role, plan:datas.plan, createdat: date, photo: imageUrl }
             ])
             if(data){
               console.log(data);
@@ -72,6 +104,25 @@ function Signup({plan}) {
   return (
     <div className='form-ctn'>
       {isSuccess === false ? (<form onSubmit={handleSubmit}>
+        <div className="form-group dash">
+                  <label htmlFor="image">Add Profile Photo</label>
+                  <input
+                    type="file"
+                    id="image"
+                    name="image"
+                    onChange={handleImageUpload}
+                  />
+                  {file && (
+                    <div className="file-preview">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        height={100}
+                        width={110}
+                        alt="uploaded-file"
+                      />
+                    </div>
+                  )}
+                </div>
         <div className='auth-form-group'>
           <label htmlFor="firstname">firstname</label>
           <input 

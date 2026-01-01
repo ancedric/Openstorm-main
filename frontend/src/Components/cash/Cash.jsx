@@ -1,7 +1,7 @@
 import './style.css'
 import PropTypes from "prop-types";
 import { useState } from "react";
-import api from "../../axiosConfig";
+import supabase from "../../supabase.config";
 import Cart from '../cart/cart'
 import Loader from "../Loader";
 import CashCard from "../cards/cash/CashCard";
@@ -64,12 +64,25 @@ const saveCart = async () =>{
     updateSales(itemsSold, totalAmount);
     try{
       //création du panier en base de données et récupération de son id
-      const res = await api.post(`/carts/new-cart`, { shopId: shop.id, amount: totalAmount });
-      const newcartId = res.data.cart.id
+      //const res = await api.post(`/carts/new-cart`, { shopId: shop.id, amount: totalAmount });
+      const {data, error} = await supabase
+      .from('carts')
+      .insert([{
+        shopid: shop.id, 
+        amount: totalAmount,
+        date: new Date.ToISOString()
+      }])
+      .select()
+      if(error){
+        console.error('erreur lors de la création du panier')
+        return
+      }
+      
+      const newcartId = data.id
         //ajout des produits au panier
         for (const command of cartProducts) {
             try{
-                const order = await api.post(`/orders/new-order`, {
+                /*const order = await api.post(`/orders/new-order`, {
                     cartId: newcartId,
                     productId: command.product.id,
                     quantity: command.quantity,
@@ -77,10 +90,34 @@ const saveCart = async () =>{
                     reduction: command.product.reduction || 0,
                     total: (command.product.price * command.quantity * (1 - (command.product.reduction || 0) / 100)).toFixed(2),
                     date: new Date().toISOString(),
-                });
+                });*/
+
+                const {data, error} = await supabase
+                .from('orders')
+                .insert([{
+                    cartid: newcartId,
+                    productid: command.product.id,
+                    quantity: command.quantity,
+                    price: command.product.price,
+                    reduction: command.product.reduction || 0,
+                    total: (command.product.price * command.quantity * (1 - (command.product.reduction || 0) / 100)).toFixed(2),
+                    date: new Date().toISOString(),
+                }])
+                if(error) throw error
+                const order = data
                 if(order){
                   //On diminue le stock du produit
-                  const stockRes = await api.put(`/products/update-stock/${command.product.id}`, {quantity: command.quantity})
+                  //const stockRes = await api.put(`/products/update-stock/${command.product.id}`, {quantity: command.quantity})
+
+                  const {data, error} = supabase
+                    .from('products')
+                    .update({quantity: command.quantity})
+                    .eq({id: command.product.id})
+                    .select()
+
+                    if(error) throw error
+
+                    const stockRes = data
                   if(stockRes){
                     console.log('Mise à jour du stock réussie!', stockRes)
                   }
@@ -92,7 +129,17 @@ const saveCart = async () =>{
 
         try{
           console.log('Mise à jour du cash')
-          const updateShopRes = await api.put(`/shops/update-cash/${shop.id}`,{newCash: shop.cash + totalAmount})
+          //const updateShopRes = await api.put(`/shops/update-cash/${shop.id}`,{newCash: shop.cash + totalAmount})
+
+          const newCash = shop.cash + totalAmount
+          const {data, error } = await supabase
+            .from('shops')
+            .update({cash : newCash})
+            .eq({id: shop.id}).select()
+
+            if(error) throw error
+
+            const updateShopRes = data
           if(updateShopRes.shop){
             console.log('Mise à jour du cash réussie')
           }

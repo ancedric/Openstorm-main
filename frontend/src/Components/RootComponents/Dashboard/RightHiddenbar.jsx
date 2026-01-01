@@ -90,23 +90,36 @@ function RightHiddenbar() {
         setIsBlocked(true)
       } else{
           const fetchProducts = async () => {
-          try {
-            const productsData = await GetProducts(shop.ref);
-            setProductList(productsData);
-            fetchDailySalesAPI(shop.id)
+            try {
+              const productsData = await GetProducts(shop.ref);
+              setProductList(productsData);
+              fetchDailySalesAPI(shop.id);
 
-            const salesPromises = productsData.map( async product => {
-              const data = await fetchProductSales(product.id)
-              return data
-            })
+              // 1. Calculer le total des ventes pour chaque produit
+              const salesPromises = productsData.map(async (product) => {
+                const orders = await fetchProductSales(product.id);
+                const totalQty = orders.reduce((sum, order) => sum + (order.quantity || 0), 0);
+                
+                return {
+                  name: product.name,
+                  quantity: totalQty
+                };
+              });
 
-            const allSalesData = await Promise.all(salesPromises)
-            setProductsSalesData(prev => [...prev, ...allSalesData])
-          } catch (error) {
-            console.error("Erreur lors de la récupération des produits :", error);
-            // Gérer l'erreur de manière appropriée
-          }
-        };
+              const aggregatedSales = await Promise.all(salesPromises);
+
+              // 2. Trier du plus vendu au moins vendu et prendre les 5 premiers
+              const top5Products = aggregatedSales
+                .filter(p => p.quantity > 0) // On ignore les produits non vendus
+                .sort((a, b) => b.quantity - a.quantity) // Tri décroissant
+                .slice(0, 5); // On garde uniquement les 5 meilleurs
+
+              setProductsSalesData(top5Products);
+
+            } catch (error) {
+              console.error("Erreur lors de la récupération des produits :", error);
+            }
+          };
 
         fetchProducts();
         fetchCommands();
@@ -129,145 +142,147 @@ function RightHiddenbar() {
   };
   
   const fetchDailySalesAPI = async (shopId) => {
-      try {
-          //const res = await api.get(`/sales/get-shop-sales/${shopId}`);
-          const {data, error } = await supabase
-            .from('dailysales')
-            .select('*')
-            .eq('shopid', shopId);
-          if (error) {
-              throw error;
-          }
-          if(data.length === 0){
-            setDailySalesData([]);
-            return
-          }
-          const sales = data
-          setTotalSales(sales.length)
-          setDailySalesData(data); 
-      } catch (error) {
-          console.error("Erreur lors de la récupération des ventes de la boutique :", error);
-          setDailySalesData([]);
-      }
+    try {
+      const { data, error } = await supabase
+        .from('dailysales')
+        .select('*')
+        .eq('shopid', shopId)
+        .order('date', { ascending: true }); // On récupère tout, trié par date
+
+      if (error) throw error;
+
+      // 1. Agrégation par date (au cas où il y aurait des doublons historiques)
+      const aggregatedSales = data.reduce((acc, current) => {
+        const dateStr = current.date.split('T')[0];
+        const existing = acc.find(s => s.date.split('T')[0] === dateStr);
+
+        if (existing) {
+          existing.nbSales += current.nbsales;
+          existing.totalAmount += current.totalamount;
+        } else {
+          acc.push({
+            ...current,
+            date: dateStr, // On garde une date propre YYYY-MM-DD
+            nbSales: current.nbsales,
+            totalAmount: current.totalamount
+          });
+        }
+        return acc;
+      }, []);
+
+      // 2. On garde uniquement les 7 derniers jours pour le graphique
+      const last7Days = aggregatedSales.slice(-7); 
+
+      setTotalSales(aggregatedSales.reduce((sum, s) => sum + s.nbSales, 0));
+      setDailySalesData(last7Days);
+
+    } catch (error) {
+      console.error("Erreur récupération ventes journalières :", error);
+      setDailySalesData([]);
+    }
   };
 
-  const fetchProductSales = async (productId) =>{
-    try{
-      
-      const {data, error} = await supabase
-        .from('orders')
-        .select('*')
-        .eq('productid', productId);
-                  
-      if (error) {
-          throw error;
-      } 
-      //const productData =  await api.get(`/orders/get-product-order/${productId}`)
-      
-      const orders = data 
-      
-      if (!orders){
-        return []
-      }
+  const fetchProductSales = async (productId) => {
+    try {
+        // 1. Récupérer les commandes pour ce produit
+        const { data: orders, error: orderError } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('productid', productId);
 
-      const productIds = orders.map(order => order.productid)
-      const uniqueProductIds = [...new Set(productIds)]
+        if (orderError) throw orderError;
+        if (!orders || orders.length === 0) return [];
 
-      const productsResponse = await Promise.all(uniqueProductIds.map(async (productid) => {
-        //const product = await api.get(`/products/product/${productid}`)
-        const {data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', productid)
-        .single();
+        // 2. Extraire les IDs de produits uniques
+        const uniqueIds = [...new Set(orders.map(o => o.productid))];
 
-        if(error){
-          throw error;
-        }
-        return data
-      }))
-      const ordersWithProducts = orders.map(order => {
-        const product = productsResponse.find(prod => prod.id === order.productid)
-        return {
-          ...order,
-          product: product || null
-        }
-      })
-      return ordersWithProducts
+        // 3. Récupérer TOUS les produits concernés en UNE SEULE requête
+        const { data: products, error: prodError } = await supabase
+            .from('products')
+            .select('*')
+            .in('id', uniqueIds);
+
+        if (prodError) throw prodError;
+
+        // 4. Associer les produits aux commandes
+        return orders.map(order => ({
+            ...order,
+            product: products.find(p => p.id === order.productid) || null
+        }));
+
+    } catch (error) {
+        console.error('Erreur récupération vente produit :', error);
+        return [];
     }
-    catch(error){
-      console.error('Une erreur est survenue lors de la récupération de la vente du produit', error)
-    }
-  }
+};
 
 const updateDailySales = async (itemsSold, salesAmount) => {
-    const today = new Date().toISOString().split('T')[0]; 
-    setTotalSales(prevTotal => prevTotal + itemsSold); 
-
-    // 3. Mettre à jour le tableau dailySalesData
-    setDailySalesData(async prevDailySales => {
-        const saleIndex = prevDailySales.findIndex(sale => sale.date.split('T')[0] === today);
-
-        // Si une vente pour 'aujourd'hui' existe déjà
-        if (saleIndex !== -1) {
-            const newDailySales = [...prevDailySales]; 
-            const existingSale = newDailySales[saleIndex];
-
-            newDailySales[saleIndex] = {
-                ...existingSale,
-                nbSales: existingSale.nbSales + itemsSold,
-                totalAmount: existingSale.totalAmount + salesAmount,
-            };
-            try{
-              //const res = api.put(`/sales/update-daily-sale/${shop.id}`, {nbSales: existingSale.nbSale + itemsSold, totalAmount: existingSale.totalAmount + salesAmount, date: today})
-              const {data, error} = supabase
-              .from('dailysales')
-              .update({nbsales: existingSale.nbSales + itemsSold, totalamount: existingSale.totalAmount + salesAmount})
-              .eq('shopid', shop.id)
-              .eq('date', today);
-
-              const res = data;
-              
-              if(error){
-                throw error
-              }
-              return res;
-            }
-            catch(err){
-              console.error("Erreur lors de la mise à jour du daily sale", err)
-            }
-        } 
-        
-        // Si aucune vente pour 'aujourd'hui' n'existe, en ajouter une nouvelle
-        else {
-          
-          try{
-            //const res = await api.post(`/sales/new-sale`, {shopId: shop.id, nbSales: itemsSold, totalAmount: salesAmount})
-            const {data, error} = await supabase
+    const today = new Date().toISOString().split('T')[0];
+    
+    try {
+        // 1. Vérifier en base de données si la ligne pour "aujourd'hui" existe
+        const { data: existingData, error: fetchError } = await supabase
             .from('dailysales')
-            .insert([{shopid: shop.id, nbsales: itemsSold, totalamount: salesAmount, date: today}]);
-            if (error) {
-              throw error;
-            }
-            if (!data || data.length === 0) {
-              console.log('No daily sale created');
-              return prevDailySales;
-            }
-            console.log('Daily sale added');
-            return [
-              ...prevDailySales,
-              {
-              date: today,
-              nbSales: itemsSold,
-              totalAmount: salesAmount,
-              }
-            ];
-          }
-          catch(err){
-            console.error("Erreur lors de l'ajout du daily sale", err)
-          }
+            .select('*')
+            .eq('shopid', shop.id)
+            .eq('date', today)
+            .maybeSingle(); // Récupère 1 ligne ou null
+
+        if (fetchError) throw fetchError;
+
+        let updatedEntry;
+
+        if (existingData) {
+            // 2. MODIFIER : On additionne les valeurs existantes
+            const { data, error } = await supabase
+                .from('dailysales')
+                .update({
+                    nbsales: existingData.nbsales + itemsSold,
+                    totalamount: existingData.totalamount + salesAmount
+                })
+                .eq('id', existingData.id)
+                .select()
+                .single();
+            if (error) throw error;
+            updatedEntry = data;
+        } else {
+            // 3. CRÉER : Première vente du jour
+            const { data, error } = await supabase
+                .from('dailysales')
+                .insert([{
+                    shopid: shop.id,
+                    nbsales: itemsSold,
+                    totalamount: salesAmount,
+                    date: today
+                }])
+                .select()
+                .single();
+            if (error) throw error;
+            updatedEntry = data;
         }
-    });
+
+        // 4. Mettre à jour le state local de manière propre (pour le graphique)
+        setDailySalesData(prevSales => {
+            // On retire l'ancienne entrée de "aujourd'hui" si elle existe dans le tableau
+            const filtered = prevSales.filter(s => s.date.split('T')[0] !== today);
+            
+            // On ajoute la nouvelle version mise à jour
+            const newData = [...filtered, {
+                ...updatedEntry,
+                nbSales: updatedEntry.nbsales, // On harmonise les noms de clés si nécessaire
+                totalAmount: updatedEntry.totalamount
+            }];
+
+            // On trie par date pour que le graphique soit cohérent
+            return newData.sort((a, b) => new Date(a.date) - new Date(b.date));
+        });
+
+        // Mise à jour du compteur global
+        setTotalSales(prev => prev + itemsSold);
+
+    } catch (err) {
+        console.error("Erreur lors de la mise à jour des ventes journalières :", err);
+    }
 };
 
   const shopDataForCash = shop ? { ...shop, cash: currentCashAmount } : null;
@@ -506,18 +521,32 @@ const updateDailySales = async (itemsSold, salesAmount) => {
                 <h3>Statistics</h3>
                 <div className="charts">
                   <div className="chart-ctn">
-                    <HistogramComponent
-                      salesData={dailySalesData.map(sale => sale.nbsales)} 
-                      labels={dailySalesData.map(sale => sale.date.split('T')[0])}
-                      labTitle="daily sales"
-                    />
+                    {dailySalesData.length > 0 ? (
+                      <HistogramComponent
+                        // On utilise nbsales pour le volume de ventes par jour
+                        salesData={dailySalesData.map(sale => sale.nbSales)} 
+                        // On affiche la date simplifiée
+                        labels={dailySalesData.map(sale => sale.date)}
+                        labTitle="Daily Sales (Last 7 Days)"
+                      />
+                    ) : (
+                      <div className="no-data-msg">No sales recorded this week.</div>
+                    )}
                   </div>
                   <div className="chart-ctn">
-                    <HistogramComponent
-                      salesData={productsSalesData[0]?.map(sale => sale.quantity)} 
-                      labels={productsSalesData[0]?.map(sale => sale.product?.name)}
-                      labTitle="Sales per product"
-                    />
+                    {productsSalesData.length > 0 ? (
+                      <HistogramComponent
+                        // On passe les données nettoyées et triées
+                        salesData={productsSalesData.map(item => item.quantity)} 
+                        labels={productsSalesData.map(item => item.name)}
+                        labTitle="Top 5 Best Sellers"
+                      />
+                    ) : (
+                      <div className="no-data-msg" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                        <p>No sales data available yet.</p>
+                        <small>Sell products to see your Top 5 here!</small>
+                      </div>
+                    )}
                   </div>
                 </div>
                 

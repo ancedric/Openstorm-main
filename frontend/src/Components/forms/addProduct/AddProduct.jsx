@@ -1,5 +1,5 @@
 import './style.css'
-import api from '../../../axiosConfig';
+import supabase from '../../../supabase.config';
 import Toast from '../../toast';
 import { useState } from 'react';
 import PropTypes from 'prop-types';
@@ -39,11 +39,48 @@ const AddProductForm = ( {shop, close, onProductAdded}) => {
         formData.append("price", productData.price);
         formData.append("image", file);
         try {
-            const newProduct = await api.post(`/products/new-product`, formData, {
+            /*const newProduct = await api.post(`/products/new-product`, formData, {
                 headers: { 
                 }
-            });
+            });*/
 
+            const fileExt = formData.image.name.split('.').pop();
+            const fileName = `${Date.now()}.${fileExt}`;
+            const filePath = `products/${fileName}`;
+
+            // eslint-disable-next-line no-unused-vars
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from(import.meta.env.VITE_STORAGE_BUCKET_NAME)
+                .upload(filePath, formData.image);
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage
+                .from(import.meta.env.VITE_STORAGE_BUCKET_NAME)
+                .getPublicUrl(filePath);
+
+            const imageUrl = urlData.publicUrl;
+
+            const {data, error }= await supabase
+            .from('products')
+            .insert([{
+              ref: formData.ref,
+              shopRef: shop.ref,
+              name: formData.name,
+              category: formData.category,
+              summary: formData.summary,
+              description: formData.description,
+              supplier: formData.supplier,
+              price: formData.price,
+              image: imageUrl
+            }])
+            .select()
+
+            if(error){
+              console.error('Erreur lors de la mise à jour du produit')
+              return
+            }
+            const newProduct = data
             if (newProduct) {
                 setToast({message: "Product added successfully", type: "success", visible: true});
                 onProductAdded(newProduct.data.product);

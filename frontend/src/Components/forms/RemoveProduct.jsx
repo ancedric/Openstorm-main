@@ -1,6 +1,6 @@
 import './addProduct/style.css'
 import { useState } from 'react'
-import api from '../../axiosConfig';
+import supabase from '../../supabase.config';
 import PropTypes from 'prop-types';
 
 // eslint-disable-next-line no-unused-vars
@@ -18,9 +18,19 @@ const RemoveProductForm = ({products, close, onProductRemoved}) => {
           e.preventDefault()
           
           try {
-            const newProduct = await api.delete(`/products/delete-product/${productToRemoveData}`, {
+            /*const newProduct = await api.delete(`/products/delete-product/${productToRemoveData}`, {
               headers: { }
-            });
+            })*/
+
+            const {data, error} = await supabase
+            .from('products')
+            .delete()
+            .eq({id: productToRemoveData})
+            .select()
+            if(error){
+              console.log('No product to remove')
+            }
+            const newProduct = data
             if (newProduct) {
               onProductRemoved(productToRemoveData);
               close()

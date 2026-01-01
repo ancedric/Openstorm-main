@@ -42,8 +42,8 @@ function Login() {
               setToast({ message: isSignedIn.message, type: 'error', visible: true });
               
               setTimeout(() => {
+                setIsSubmitting(false);
                   setToast({ ...toast, visible: false });
-                  navigate('/home');
               }, 3000);
             }
 

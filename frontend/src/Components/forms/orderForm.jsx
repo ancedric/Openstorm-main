@@ -1,11 +1,11 @@
 import './addProduct/style.css'
 import PropTypes from "prop-types";
 import { useState } from "react";
-import api from "../../axiosConfig";
+import supabase from "../../supabase.config";
 import Toast from '../toast';
 
 const OrderForm = ({ productId, currentQty, updateStock, onClick }) => {
-  const [quantity, setQuantity] = useState(0);
+  const [newQuantity, setQuantity] = useState(0);
   const [toast, setToast] = useState({ message: '', type: '', visible: false });
 
   const handleQuantityChange = (event) => {
@@ -20,16 +20,22 @@ const OrderForm = ({ productId, currentQty, updateStock, onClick }) => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
-      console.log("Données à envoyer: ", productId, quantity)
-      const res = await api.put(`/products/upgrade-stock/${productId}`, {quantity: quantity});
+      console.log("Données à envoyer: ", productId, newQuantity)
+      //const res = await api.put(`/products/upgrade-stock/${productId}`, {quantity: quantity});
 
-      if (res.status === 201) {
-        console.log('response: ', res)
-          updateStock(quantity)
+      const {data, error} = await supabase
+      .from('products')
+      .update({quantity: newQuantity})
+      .eq({id:  productId})
+      .select()
+
+      if (data) {
+        console.log('response: ', data)
+          updateStock(newQuantity)
           onClick()
         }
         else {
-        console.error("Erreur lors de la mise à jour du stock");
+        console.error("Erreur lors de la mise à jour du stock", error);
           setToast({ message: 'Erreur lors de la mise à jour du stock', type: 'error', visible: true });
           setTimeout(() => {
             setToast({ ...toast, visible: false });
@@ -52,7 +58,7 @@ const OrderForm = ({ productId, currentQty, updateStock, onClick }) => {
               id="quantity"
               name="quantity"
               onChange={handleQuantityChange}
-              value={quantity || ""}
+              value={newQuantity || ""}
             />
           </div>
           <div className="buttons">
