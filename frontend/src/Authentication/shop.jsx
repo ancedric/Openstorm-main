@@ -5,9 +5,9 @@ export const GetProducts = async (shopId) => {
   try {
     //const response = await api.get(`/products/get-shop-products/${shopId}`);
     const {data, error } = await supabase
-      .from('products')
+      .from('inventory_products')
       .select('*')
-      .eq('shopref', shopId);
+      .eq('companyref', shopId);
 
     if (error) {
       throw error;
@@ -30,7 +30,7 @@ export const GetAllProducts = async () => {
     //const response = await api.get(`/products/all-products`);
 
     const {data, error } = await supabase
-      .from('products')
+      .from('inventory_products')
       .select('*');
 
     if (error) {
@@ -126,7 +126,7 @@ export const GetProduct = async (productId) => {
   //const res = await api.get(`/products/product/${productId}`)
   
   const {data, error } = await supabase
-    .from('products')
+    .from('inventory_products')
     .select('*')
     .eq('id', productId)
     .single();
@@ -150,7 +150,7 @@ const fetchProductsForOrder = async (order) => {
         //const productRes = await api.get(`/products/product/${order.productid}`);
         
         const {data, error} = await supabase
-            .from('products')
+            .from('inventory_products')
             .select('*')
             .eq('id', order.productid)
             .single();
@@ -175,9 +175,9 @@ export const FetchCommands = async (shopId) => {
         //const cartRes = await api.get(`/carts/get-shop-carts/${shopId}`);
         
         const { data, error } = await supabase
-        .from('carts')
+        .from('inventory_carts')
         .select('*')
-        .eq('shopid', shopId);
+        .eq('companyref', shopId);
 
         if (error) {
             throw error;
@@ -193,7 +193,7 @@ export const FetchCommands = async (shopId) => {
             try {
                 //const orderRes = await api.get(`orders/get-shop-orders/${cart.id}`);
                 const {data, error} = await supabase
-                    .from('orders')
+                    .from('inventory_orders')
                     .select('*')
                     .eq('cartid', cart.id);
 
@@ -230,7 +230,7 @@ export const GetCart = async (userId) => {
   try {
     //const response = await api.get(`/carts/get-cart/${userId}`);
     const {data, error } = await supabase
-    .from('carts')
+    .from('inventory_carts')
     .select('*')
     .eq('userid', userId)
     .single();
@@ -249,6 +249,30 @@ export const GetCart = async (userId) => {
     console.error("Error fetching cart:", error);
   }
 };
+
+export const fetchSalesHistory = async (shopId) => {
+  const { data, error } = await supabase
+    .from('inventory_carts')
+    .select(`
+      id,
+      amount,
+      date,
+      store_id,
+      inventory_stores (store_name),
+      inventory_orders (
+        quantity,
+        productid,
+        inventory_products (name)
+      )
+    `)
+    .eq('companyref', shopId)
+    .order('date', { ascending: false })
+    .limit(20);
+
+  if (error) throw error;
+  return data;
+};
+
 /* Notifications de l'utilisateur
 export const GetNotifs = async () => {
   const { user } = useUser();

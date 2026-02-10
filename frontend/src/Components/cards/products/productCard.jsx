@@ -2,9 +2,8 @@ import './style.css'
 import PropTypes from "prop-types";
 import { useState } from "react";
 import OrderForm from "../../forms/orderForm";
-import { baseURL } from "../../../axiosConfig";
 
-const ProductCard = ({ viewProduct, product }) => {
+const ProductCard = ({ viewProduct, product, updateProductStock }) => {
   const [isOverlayVisible, setIsOverlayVisible] = useState(false);
   const [commandFormOpen, setCommandFormOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
@@ -23,6 +22,7 @@ const ProductCard = ({ viewProduct, product }) => {
   };
   const setupStock = (newStock) => {
     setStock(newStock)
+    updateProductStock(product.id, newStock)
   }
 
   const setOverlay = () => {
@@ -123,7 +123,8 @@ ProductCard.propTypes = {
     openingHour: PropTypes.string,
     closeHour: PropTypes.string,
     image: PropTypes.string,
-  })
+  }),
+  updateProductStock: PropTypes.func.isRequired,
 };
 
 export default ProductCard;

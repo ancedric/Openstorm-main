@@ -14,8 +14,8 @@ const Timer = ({ shop }) => {
     return () => clearInterval(intervalId);
   }, []);
 
-  const closeTime = shop && shop.closehour;
-  const openTime = shop && shop.openinghour;
+  const closeTime = shop && shop.closehour || "18:00:00"; // Valeur par défaut
+  const openTime = shop && shop.openinghour || "08:00:00"; // Valeur par défaut
 
   const isOpen = () => {
     if (currentTime && closeTime && openTime) {
@@ -42,7 +42,7 @@ const Timer = ({ shop }) => {
     <div className={`clock ${isOpen() ? 'open' : 'closed'}`}>
       {/* Affichage de l'heure locale formatée */}
       {currentTime.toLocaleTimeString()} 
-      <p className={`clock ${!isOpen() ? 'isClosed' : 'isOpen'}`}>
+      <p className={`time ${!isOpen() ? 'isClosed' : 'isOpen'}`}>
         {!isOpen() ? 'closed' : 'open'}
       </p>
     </div>

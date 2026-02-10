@@ -1,20 +1,20 @@
 
 import PropTypes from 'prop-types'
-import Loader from '../Loader'
-import { baseURL } from '../../axiosConfig'
 import './productView.css'
 
 const ProductViewCard = ({product, close}) => {
   return (
-    <div>
-               {!product? (<Loader />) : 
+          <div className="overlay" onClick={close}>
+            <div>
+               {!product? (<div className="product-view" onClick={close}>
+                Aucun produit pour le moment
+              </div>) : 
                (<div className="product-view">
                 <button className="close-btn" onClick={close}>
-                   <img
-                    src="frontend\src\assets\icons\close-square-svgrepo-com.svg"
-                    alt="close"
-                    width="35px"
-                  />
+                   <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="#54129b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
                 </button>
                   <div className='card'>
                     <div className="product-img">
@@ -30,19 +30,18 @@ const ProductViewCard = ({product, close}) => {
                           <p className="price"> Price : {product.price} $</p>
                           <p className="category"> Category : {product.category}</p>
                         </div>
-                        {/*<div className="command-product">
-                          <button onClick={()=> navigate(`/view-shop/${product.shopId}`)}>Back to Command</button>
-                        </div>*/}
                         <p className="data"> Summary : <br /> {product.summary}</p>
                         <p className="description"> <b>Description :</b><br /> {product.description}</p>
                         <p className="data"> Supplier : {product.supplier}</p>
-                        {/*<p className="data"> Added At : {product.createdat.toString().split('T')[0]}</p>*/}
                       </div>
                     </div>
                   </div>
                 </div>)
               }
-    </div>
+            </div>
+          </div>
+          
+          
   )
 }
 ProductViewCard.propTypes = {

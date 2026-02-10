@@ -1,20 +1,27 @@
+/* eslint-disable no-unused-vars */
 import './style.css'
 import PropTypes from "prop-types";
+import useAuth from '../../Authentication/Context/useAuth';
 import { useState } from "react";
 import supabase from "../../supabase.config";
 import Cart from '../cart/cart'
 import Loader from "../Loader";
 import CashCard from "../cards/cash/CashCard";
 
-const Cash = ({ shop, products, handleViewProduct, updateCash, updateSales }) => {
-  const amount = shop.cash; 
-  const [productRef, setProductRef] = useState(null)
-  const [productResult, setProductResult] = useState(null)
-  const [cartProducts, setCartProducts] = useState([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [isCartLoading, setIsCartLoading] = useState(false)
+const Cash = ({ shop, products, currentStore, handleViewProduct, updateCash, updateSales }) => {
 
-  if (!shop) return <Loader />;
+  const { stores } = useAuth();
+  
+  const amount = shop.cash; 
+  const [cartProducts, setCartProducts] = useState([])
+  const [isSearching] = useState(false)
+  const [isCartLoading, setIsCartLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [productResult, setProductResult] = useState(null)
+  const [selectedStore, setSelectedStore] = useState(null);
+
+  if (!shop) return <div>Aucune boutique chargée! {':('}</div>;
 
   const addToCart = async (product, shopId) => {
     if (!product) return;
@@ -57,125 +64,106 @@ const removeFromCart = (productId) => {
     });
 };
 
-const saveCart = async () =>{
-    const itemsSold = cartProducts.reduce((sum, command) => sum + command.quantity, 0);//Nombre d'articles vendus
-    const newShopCash = amount + totalAmount
-    updateCash(newShopCash)
-    updateSales(itemsSold, totalAmount);
-    try{
-      //création du panier en base de données et récupération de son id
-      //const res = await api.post(`/carts/new-cart`, { shopId: shop.id, amount: totalAmount });
-      const {data, error} = await supabase
-      .from('carts')
-      .insert([{
-        shopid: shop.id, 
-        amount: totalAmount,
-        date: new Date.ToISOString()
-      }])
-      .select()
-      if(error){
-        console.error('erreur lors de la création du panier')
-        return
-      }
-      
-      const newcartId = data.id
-        //ajout des produits au panier
-        for (const command of cartProducts) {
-            try{
-                /*const order = await api.post(`/orders/new-order`, {
-                    cartId: newcartId,
-                    productId: command.product.id,
-                    quantity: command.quantity,
-                    price: command.product.price,
-                    reduction: command.product.reduction || 0,
-                    total: (command.product.price * command.quantity * (1 - (command.product.reduction || 0) / 100)).toFixed(2),
-                    date: new Date().toISOString(),
-                });*/
+const saveCart = async () => {
+    if (cartProducts.length === 0) return;
+    if (!selectedStore) return alert("Veuillez sélectionner un magasin.");
 
-                const {data, error} = await supabase
-                .from('orders')
-                .insert([{
-                    cartid: newcartId,
-                    productid: command.product.id,
-                    quantity: command.quantity,
-                    price: command.product.price,
-                    reduction: command.product.reduction || 0,
-                    total: (command.product.price * command.quantity * (1 - (command.product.reduction || 0) / 100)).toFixed(2),
-                    date: new Date().toISOString(),
-                }])
-                if(error) throw error
-                const order = data
-                if(order){
-                  //On diminue le stock du produit
-                  //const stockRes = await api.put(`/products/update-stock/${command.product.id}`, {quantity: command.quantity})
-
-                  const {data, error} = supabase
-                    .from('products')
-                    .update({quantity: command.quantity})
-                    .eq({id: command.product.id})
-                    .select()
-
-                    if(error) throw error
-
-                    const stockRes = data
-                  if(stockRes){
-                    console.log('Mise à jour du stock réussie!', stockRes)
-                  }
-                }
-            }catch(error){
-                console.error(`Erreur lors de l'ajout du produit ${command.product.productId} au panier:`, error);
-            }
-        }
-
-        try{
-          console.log('Mise à jour du cash')
-          //const updateShopRes = await api.put(`/shops/update-cash/${shop.id}`,{newCash: shop.cash + totalAmount})
-
-          const newCash = shop.cash + totalAmount
-          const {data, error } = await supabase
-            .from('shops')
-            .update({cash : newCash})
-            .eq({id: shop.id}).select()
-
-            if(error) throw error
-
-            const updateShopRes = data
-          if(updateShopRes.shop){
-            console.log('Mise à jour du cash réussie')
-          }
-        }
-        catch(err){
-          console.error('Erreur lors de la mise à jour du cash', err)
-        }
-        setCartProducts([]);
-        setProductResult(null);
-        setProductRef("");
-
-    }catch(error){
-      console.error("Erreur lors de l'enregistrement de la commande:", error);
-    }
-    setCartProducts([]);
-    setProductResult(null);
-    setProductRef("");
-}
-
-  const handleChange = (event) => {
-    setProductRef(event.target.value)
-  };
-
-  const handleProductSearch = async (event) => {
-    setIsSearching(true)
-    if (event) event.preventDefault();
-
-    if (!productRef) return;
     try {
-      const res =  products.find(p => p.ref === productRef)
-      setProductResult(res)
-      setIsSearching(false)
+        setIsCartLoading(true);
+
+        // 1. Enregistrement du Panier avec le Magasin
+        const { data: cartData, error: cartError } = await supabase
+            .from('inventory_carts')
+            .insert([{
+                companyref: shop.ref, 
+                store_id: selectedStore, // On trace quel magasin a vendu
+                amount: totalAmount,
+                date: new Date().toISOString()
+            }])
+            .select().single();
+
+        if (cartError) throw cartError;
+
+        // 2. Transaction financière centralisée
+        // On récupère le nom du magasin pour une description comptable précise
+        const storeName = stores.find(s => s.id === selectedStore)?.store_name || "Inconnu";
+        
+        await supabase.from('finance_transactions').insert([{
+            companyref: shop.ref,
+            type: 'INCOME',
+            category: 'VENTE_CAISSE',
+            amount: totalAmount,
+            description: `Vente POS - ${storeName} (Panier #${cartData.id})`,
+            date: new Date().toISOString()
+        }]);
+
+        // 3. Mise à jour des produits et commandes
+        for (const item of cartProducts) {
+            await supabase.from('inventory_orders').insert([{
+                cartid: cartData.id,
+                store_id: selectedStore,
+                productref: item.product.ref,
+                quantity: item.quantity,
+                price: item.product.price,
+                total: (item.product.price * item.quantity).toFixed(2)
+            }]);
+
+            // Dans Cash.jsx, quand tu appelles la fonction de sauvegarde
+            const handleFinalizeSale = async () => {
+              const { data, error } = await supabase
+                .from('inventory_carts')
+                .insert([{
+                  shopid: shop.ref,
+                  store_id: currentStore.id, // Liaison cruciale !
+                  amount: totalAmount,
+                  date: new Date().toISOString()
+                }])
+                .select().single();
+                
+                // ... suite de la logique (décrémentation stock, etc.)
+            };
+            // Décrémentation du stock
+            const { error: stockErr } = await supabase
+                .from('inventory_products')
+                .update({ quantity: item.product.quantity - item.quantity })
+                .eq('ref', item.product.ref);
+            
+            if (stockErr) console.error("Erreur stock pour", item.product.name);
+        }
+
+        // 4. Update Statistiques & Reset
+        await updateCash();
+        setCartProducts([]);
+        setSearchTerm("");
+        alert("Succès : Transaction comptabilisée pour " + storeName);
+
     } catch (error) {
-      console.error("Erreur lors de la recherche de la commandedu produit:", error);
+        console.error("Erreur :", error);
+    } finally {
+        setIsCartLoading(false);
     }
-  };
+};
+
+ const handleSearchChange = (event) => {
+    const value = event.target.value;
+    setSearchTerm(value);
+
+    if (value.length > 1) {
+        const filtered = products.filter(p => 
+            p.name.toLowerCase().includes(value.toLowerCase()) || 
+            p.ref.toLowerCase().includes(value.toLowerCase())
+        );
+        setSuggestions(filtered);
+    } else {
+        setSuggestions([]);
+    }
+};
+
+const selectProduct = (product) => {
+    setProductResult(product); // Affiche le produit dans la carte de sélection
+    setSuggestions([]);
+    setSearchTerm(product.name);
+};
 
   return (
     <div className="cash-ctn">
@@ -183,16 +171,29 @@ const saveCart = async () =>{
         <div className="header-left">
           <h3>Cash Amount : {amount} $</h3>
           <div className="search">
-            <label htmlFor="amount">Product reference:</label><br />
-            <input
-              type="search"
-              name="search"
-              id="search"
-              className="form-text"
-              value={productRef}
-              onChange={handleChange}
-            />
-            <button className="search-btn" onClick={handleProductSearch}>Search</button>
+            <div className="search-container">
+              <label>Search Product:</label>
+              <div className="autocomplete-wrapper">
+                  <input
+                      type="text"
+                      className="form-text"
+                      placeholder="Type product name..."
+                      value={searchTerm}
+                      onChange={handleSearchChange}
+                  />
+                  {suggestions.length > 0 && (
+                      <ul className="suggestions-list">
+                          {suggestions.map(p => (
+                              <li key={p.id} onClick={() => selectProduct(p)}>
+                                  <span className="p-name">{p.name}</span>
+                                  <span className="p-ref">({p.ref})</span>
+                                  <span className="p-price">{p.price}$</span>
+                              </li>
+                          ))}
+                      </ul>
+                  )}
+              </div>
+          </div>
           </div>
         </div>
         <div className="header-right">
@@ -224,13 +225,19 @@ const saveCart = async () =>{
 };
 Cash.propTypes = {
   shop: PropTypes.shape({
-    id: PropTypes.number.isRequired,
+    ref: PropTypes.string.isRequired,
     cash: PropTypes.number.isRequired,
+    current_store_id: PropTypes.number,
   }),
   products: PropTypes.arrayOf(Object).isRequired,
+  currentStore: PropTypes.object,
   handleViewProduct: PropTypes.func.isRequired,
   updateCash: PropTypes.func.isRequired,
-  updateSales: PropTypes.func.isRequired
+  updateSales: PropTypes.func.isRequired,
+  stores: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    store_name: PropTypes.string.isRequired,
+  }),
 };
 
 export default Cash;

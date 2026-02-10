@@ -5,18 +5,20 @@ import logo1 from "../assets/images/logo_1.png"
 
 const Header = () => {
   return (
-    <div className='headerStyle' >
-      <div>
-        <div className="logo-img">
-            <img
-              src={logo1}
-              alt="logo"
-            />
+    <div className="openstorm-scope">
+      <div className='headerStyle' >
+        <div>
+          <div className="logo-img">
+              <img
+                src={logo1}
+                alt="logo"
+              />
+          </div>
         </div>
-      </div>
-      <div className="btn-ctn"> 
-        <button className="auth-lp1"><Link to="/auth " className='linkStyle'> Log In </Link> </button>
-        <button className="auth-lp2"> <Link to="/plan" className='linkStyle'> Sign Up </Link></button>
+        <div className="btn-ctn"> 
+          <button className="auth-lp1"><Link to="/auth " className='linkStyle'> Log In </Link> </button>
+          <button className="auth-lp2"> <Link to="/plan" className='linkStyle'> Sign Up </Link></button>
+        </div>
       </div>
     </div>
   );

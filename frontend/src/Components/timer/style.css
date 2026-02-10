@@ -2,7 +2,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100px;
+  gap: 10px;
+  width: 120px;
   height: 10px;  
   margin-left: 10px;
   padding-left: 8px;
@@ -26,13 +27,12 @@
   background-color: #2ff750;
   color:#fff;
   border-radius: 13px;
-  margin-left: 10px;
+  padding: 0 10px;
   height: 23px;
 }
 .isClosed{
   background-color: #ee6262;
   color: #fff;
   border-radius: 13px;
-  margin-left: 10px;
   height: 23px;
 }

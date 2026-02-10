@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 // eslint-disable-next-line no-unused-vars
 const RemoveProductForm = ({products, close, onProductRemoved}) => {
     const [productToRemoveData, setProductToRemoveData] = useState(null);
+    const [isRemoving, setIsRemoving] = useState(false)
     
       const changeRemove = (e) => {
         if (e && e.target) {
@@ -16,23 +17,22 @@ const RemoveProductForm = ({products, close, onProductRemoved}) => {
 
       const handleProductRemove = async (e) => {
           e.preventDefault()
-          
+          setIsRemoving(true)
           try {
-            /*const newProduct = await api.delete(`/products/delete-product/${productToRemoveData}`, {
-              headers: { }
-            })*/
-
+            console.log("produit à supprimer: ", productToRemoveData)
             const {data, error} = await supabase
-            .from('products')
+            .from('inventory_products')
             .delete()
-            .eq({id: productToRemoveData})
+            .eq('ref', productToRemoveData)
             .select()
             if(error){
-              console.log('No product to remove')
+              console.log('Error removing product:', error)
+              setIsRemoving(false)
             }
             const newProduct = data
             if (newProduct) {
               onProductRemoved(productToRemoveData);
+              setIsRemoving(false)
               close()
             }
           }catch(err){ 
@@ -53,23 +53,22 @@ const RemoveProductForm = ({products, close, onProductRemoved}) => {
                   >
                     **<option value="" disabled selected>Select a product</option>**
                     {products.map((product) => (
-                      <option value={product.id} key={product.id}>
+                      <option value={product.ref} key={product.ref}>
                         {product.name}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div className="form-group dash">
-                  <button type="submit">Remove product</button>
+                  <button type="submit" disabled={isRemoving}>{isRemoving? 'Removing...' : 'Remove product'}</button>
                 </div>
               </form>
               
               <button className="close-btn" onClick={close}>
-                <img
-                  src="frontend\src\assets\icons\close-square-svgrepo-com.svg"
-                  alt="close"
-                  width="35px"
-                />
+                <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="#54129b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
               </button>
           </div>
         </div>

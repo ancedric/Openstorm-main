@@ -7,6 +7,7 @@ import PropTypes from 'prop-types'
 // eslint-disable-next-line no-unused-vars
 const UpdateProductForm = ({shop, products, close, onProductUpdated}) => {
 
+  const [isUpdatating, setIsUpdating ] = useState(false)
     const [productData, setProductData] = useState({
         id: '', 
         ref: '',
@@ -28,7 +29,6 @@ const UpdateProductForm = ({shop, products, close, onProductUpdated}) => {
 
         if (selectedProduct) {
             setProductData({
-                id: selectedProduct.id,
                 ref: selectedProduct.ref || '', 
                 shopRef: shop.ref,
                 name: selectedProduct.name || '',
@@ -36,13 +36,13 @@ const UpdateProductForm = ({shop, products, close, onProductUpdated}) => {
                 summary: selectedProduct.summary || '',
                 description: selectedProduct.description || '',
                 supplier: selectedProduct.supplier || '',
-                price: selectedProduct.price.toString() || ''
+                price: selectedProduct.price.toString() || '',
+                image: selectedProduct.image || ''
             });
             setFile(null); 
         } else {
             setProductData({
-                id: '',
-                ref: '',
+              ref: '',
                 shopRef: shop.ref,
                 name: '',
                 category: '',
@@ -59,64 +59,52 @@ const UpdateProductForm = ({shop, products, close, onProductUpdated}) => {
     const handleProductUpdate = async (e) => {
         e.preventDefault()
 
-        const formData = new FormData();
-        formData.append("id", productData.id);
-        formData.append("ref", productData.ref);
-        formData.append("shopref", productData.shopRef);
-        formData.append("name", productData.name);
-        formData.append("category", productData.category);
-        formData.append("summary", productData.summary);
-        formData.append("description", productData.description);
-        formData.append("supplier", productData.supplier);
-        formData.append("price", productData.price);
-        formData.append("image", file);
-    
-        console.log("product id", productData.id);
-        console.log('Datas:', productData)
-
+        setIsUpdating(true)
         try {
-          /*const newProduct = await api.put(`/products/update-product/${productData.id}`,formData, {
-            headers: { }
-          });*/
-        //Enregister l'image
-            const fileExt = formData.image.name.split('.').pop();
-            const fileName = `${Date.now()}.${fileExt}`;
-            const filePath = `products/${fileName}`;
+            let imageUrl
 
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from(import.meta.env.VITE_STORAGE_BUCKET_NAME)
-                .upload(filePath, formData.image);
+            if(file){
+              const fileExt = file.name.split('.').pop();
+              const fileName = `${Date.now()}.${fileExt}`;
+              const filePath = `products/${fileName}`;
 
-            if (uploadError) throw uploadError;
+              const { data: uploadData, error: uploadError } = await supabase.storage
+                  .from('inventory_products_bucket')
+                  .upload(filePath, file);
 
-            const { data: urlData } = supabase.storage
-                .from(import.meta.env.VITE_STORAGE_BUCKET_NAME)
-                .getPublicUrl(filePath);
+              if (uploadError) throw uploadError;
 
-            const imageUrl = urlData.publicUrl;
+              const { data: urlData } = supabase.storage
+                  .from('inventory_products_bucket')
+                  .getPublicUrl(filePath);
 
+              imageUrl = urlData.publicUrl;
+            }
+            console.log(productData)
             const {data, error }= await supabase
-            .from('products')
-            .update([{
-              ref: formData.ref,
-              shopRef: shop.ref,
-              name: formData.name,
-              category: formData.category,
-              summary: formData.summary,
-              description: formData.description,
-              supplier: formData.supplier,
-              price: formData.price,
-              image: imageUrl
-            }])
+            .from('inventory_products')
+            .update({
+              companyref: shop.ref,
+              name: productData.name,
+              category: productData.category,
+              summary: productData.summary,
+              description: productData.description,
+              supplier: productData.supplier,
+              price: productData.price,
+              image: imageUrl? imageUrl : productData.image
+            })
+            .eq('ref', productData.ref)
             .select()
 
             if(error){
-              console.error('Erreur lors de la mise à jour du produit')
+              console.error('Erreur lors de la mise à jour du produit', error)
+              setIsUpdating(false)
               return
             }
             const newProduct = data
           if (newProduct) {
-            onProductUpdated(newProduct.data.product);
+            onProductUpdated(newProduct[0]);
+            setIsUpdating(false)
             close()
           }
         }catch(err){ 
@@ -161,92 +149,83 @@ const UpdateProductForm = ({shop, products, close, onProductUpdated}) => {
                       </select>
                     </div>
                     <div className="form-group dash">
-                  <label htmlFor="ref">Product reference</label>
-                  <input
-                    type="text"
-                    id="ref"
-                    name="ref"
-                    onChange={changeValue}
-                    value={productData.ref}
-                    required
-                  />
-                  <label htmlFor="name">Product name</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    onChange={changeValue}
-                    value={productData.name}
-                    required
-                  />
-                  <label htmlFor="category">Product category</label>
-                  <select
-                    id="category"
-                    name="category"
-                    onChange={changeValue}
-                    value={productData.category}
-                  >
-                    **<option value="" disabled selected>Select a category</option>**
-                    <option value="Bag">Bag</option>
-                    <option value="Books">Books</option>
-                    <option value="Clothes">Clothes</option>
-                    <option value="Computer">Computers</option>
-                    <option value="Dishes">Dishes</option>
-                    <option value="Food">Food</option>
-                    <option value="Industrial material">
-                      Industrial material
-                    </option>
-                    <option value="Jewels">Jewels</option>
-                    <option value="Kitchen material">Kitchen material</option>
-                    <option value="Medicines">Medicines</option>
-                    <option value="Medical material">Medical Material</option>
-                    <option value="Phones">Phones</option>
-                    <option value="Services">Services</option>
-                    <option value="School material">School material</option>
-                    <option value="Shoes">Shoes</option>
-                    <option value="Sport accessories">Sport accessories</option>
-                    <option value="Vehicles">Vehicles</option>
-                  </select>
-                  <label htmlFor="price">Product price</label>
-                  <input
-                    type="number"
-                    id="price"
-                    name="price"
-                    onChange={changeValue}
-                    value={productData.price}
-                    required
-                  />
-                </div>
-                <div className="form-group dash">
-                  <label htmlFor="summary">Product descriptive summary</label>
-                  <input
-                    type="text"
-                    id="summary"
-                    name="summary"
-                    onChange={changeValue}
-                    value={productData.summary}
-                    required
-                  />
-                  <label htmlFor="product-description">
-                    Product description
-                  </label>
-                  <textarea
-                    name="description"
-                    id="description"
-                    cols="30"
-                    rows="10"
-                    onChange={changeValue}
-                    value={productData.description}
-                  ></textarea>
-                  <label htmlFor="supplier">supplier</label>
-                  <input
-                    type="text"
-                    id="supplier"
-                    name="supplier"
-                    onChange={changeValue}
-                    value={productData.supplier}
-                  />
-                </div>
+                      <label htmlFor="name">Product name</label>
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        onChange={changeValue}
+                        value={productData.name}
+                        required
+                      />
+                      <label htmlFor="category">Product category</label>
+                      <select
+                        id="category"
+                        name="category"
+                        onChange={changeValue}
+                        value={productData.category}
+                      >
+                        **<option value="" disabled selected>Select a category</option>**
+                        <option value="Bag">Bag</option>
+                        <option value="Books">Books</option>
+                        <option value="Clothes">Clothes</option>
+                        <option value="Computer">Computers</option>
+                        <option value="Dishes">Dishes</option>
+                        <option value="Food">Food</option>
+                        <option value="Industrial material">
+                          Industrial material
+                        </option>
+                        <option value="Jewels">Jewels</option>
+                        <option value="Kitchen material">Kitchen material</option>
+                        <option value="Medicines">Medicines</option>
+                        <option value="Medical material">Medical Material</option>
+                        <option value="Phones">Phones</option>
+                        <option value="Services">Services</option>
+                        <option value="School material">School material</option>
+                        <option value="Shoes">Shoes</option>
+                        <option value="Sport accessories">Sport accessories</option>
+                        <option value="Vehicles">Vehicles</option>
+                      </select>
+                      <label htmlFor="price">Product price</label>
+                      <input
+                        type="number"
+                        id="price"
+                        name="price"
+                        onChange={changeValue}
+                        value={productData.price}
+                        required
+                      />
+                    </div>
+                    <div className="form-group dash">
+                      <label htmlFor="summary">Product descriptive summary</label>
+                      <input
+                        type="text"
+                        id="summary"
+                        name="summary"
+                        onChange={changeValue}
+                        value={productData.summary}
+                        required
+                      />
+                      <label htmlFor="product-description">
+                        Product description
+                      </label>
+                      <textarea
+                        name="description"
+                        id="description"
+                        cols="30"
+                        rows="10"
+                        onChange={changeValue}
+                        value={productData.description}
+                      ></textarea>
+                      <label htmlFor="supplier">supplier</label>
+                      <input
+                        type="text"
+                        id="supplier"
+                        name="supplier"
+                        onChange={changeValue}
+                        value={productData.supplier}
+                      />
+                    </div>
                     <div className="form-group dash">
                       <label htmlFor="productImage">Click here to add image</label>
                       <input
@@ -267,18 +246,16 @@ const UpdateProductForm = ({shop, products, close, onProductUpdated}) => {
                       )}
                     </div>
                     <div className="form-group dash">
-                      <button type="submit">Update product</button>
+                      <button type="submit" disabled={isUpdatating}>{isUpdatating? 'Updating...' : 'Update product'}</button>
                     </div>
                   </form>
                   <button className="close-btn" onClick={close}>
-                    <img
-                      src="frontend\src\assets\icons\close-square-svgrepo-com.svg"
-                      alt="close"
-                      width="35px"
-                    />
+                    <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="#54129b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
                   </button>
               </div>
-              
             </div>
   )
 }

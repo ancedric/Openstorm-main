@@ -13,22 +13,35 @@ import ShopSetupForm from "../../forms/shopSetupForm/ShopForm";
 import defaultShop from '../../../assets/images/default_shop.png'
 import { FetchCommands, GetProducts } from '../../../Authentication/shop';
 import useAuth from '../../../Authentication/Context/useAuth';
-import supabase/*, {baseURL}*/ from '../../../supabase.config';
+import supabase from '../../../supabase.config';
 import AddProductForm from '../../forms/addProduct/AddProduct';
 import ProductViewCard from '../../view/productView';
 import OrderCard from '../../cards/orderCard/OrderCard';
 import RenewalForm from '../../forms/ShopRenewalForm/RenewalForm'
+import UserComponent from '../../../Authentication/user';
+import StockAlerts from '../../StockAlert/StockAlert';
+import SalesHistory from '../../History/SalesHistory';
+import { fetchSalesHistory } from '../../../Authentication/shop';
 
 function RightHiddenbar() {
   const { shop, showShopSetup, completeShopSetup, isAuthenticated, isAppReady } = useAuth()
 
-  const initialCash = shop ? shop.cash : 0;
+  // Extraction sécurisée des données injectées par Pinia
+const sessionData = JSON.parse(localStorage.getItem('user') || '{}');
+const stores = sessionData.company?.stores || [];
+
+// État local pour le magasin sélectionné dans la session actuelle
+const [currentStore, setCurrentStore] = useState(stores[0] || null);
+
+  const initialCash = shop && shop.cash !== undefined ? shop.cash : 0;
   const [currentCashAmount, setCurrentCashAmount] = useState(initialCash);
 
   const [productList, setProductList] = useState([]);
   const [dailySalesData, setDailySalesData] = useState([]);
   const [commands, setCommands] = useState([]);
   const [totalSales, setTotalSales] = useState(0);
+  const [salesHistory, setSalesHistory] = useState([]);
+  const [selectedStore, setSelectedStore] = useState(null);
 
   const [myAccountOpen, setMyAccountOpen] = useState(true);
   const [catalogOpen, setCatalogOpen] = useState(false);
@@ -36,7 +49,6 @@ function RightHiddenbar() {
   const [viewProductOpen, setViewProductOpen] = useState(false)
   const [productToDisplay, setProductToDisplay] = useState(null)
   const [productsSalesData, setProductsSalesData] = useState([])
-  const scrollContainerRef = useRef(null);
 
   /*--Gestion du catalogue--*/
   const [commandsOpen, setCommandsOpen] = useState(false);
@@ -49,46 +61,7 @@ function RightHiddenbar() {
   const [isBlocked, setIsBlocked] = useState(false)
 
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      updateDailyRemainingTime()
-    }, 86400000);
-    return () => clearInterval(intervalId);
-  }, []);
-
-  const updateDailyRemainingTime = async () => {
-    try{
-      /*const newShop = await api.put(`/shops/update-remaining-activation-time/${shop.id}`, {plan: shop.remainingactivationtime - 1}, {
-        headers: { 
-        }
-      });*/
-      const {data, error} = await supabase
-        .from('shops')
-        .update({remainingactivationtime: shop.remainingactivationtime - 1})
-        .eq('id', shop.id)
-        .select()
-        .single();
-
-      const newShop = data;
-
-      if(error){
-        throw error
-      }
-
-      if (data) {
-        completeShopSetup(newShop);
-        console.log("new shop:", newShop)
-      }
-    }
-    catch(error){
-      console.error('Une erreur est survenue lors de la mise à jour de la durée d\'activation de la boutique', error)
-    }
-  }
-
-  useEffect(() => {
     if(shop && shop.id){
-      if(shop.remainingactivationtime === 0 || null){
-        setIsBlocked(true)
-      } else{
           const fetchProducts = async () => {
             try {
               const productsData = await GetProducts(shop.ref);
@@ -123,9 +96,25 @@ function RightHiddenbar() {
 
         fetchProducts();
         fetchCommands();
-      }
+      //}
     }
-  }, [isBlocked, shop]);
+  }, [/*isBlocked,*/ shop]);
+
+
+useEffect(() => {
+  if (shop?.id) {
+    refreshHistory();
+  }
+}, [shop?.id]);
+
+const refreshHistory = async () => {
+  try {
+    const data = await fetchSalesHistory(shop.id);
+    setSalesHistory(data);
+  } catch (err) {
+    console.error("Erreur lors du refresh de l'historique:", err);
+  }
+};
 
     const fetchCommands = async () => {
       try {
@@ -141,19 +130,21 @@ function RightHiddenbar() {
       setCurrentCashAmount(newAmount);
   };
   
-  const fetchDailySalesAPI = async (shopId) => {
+  const fetchDailySalesAPI = async (companyRef) => {
     try {
       const { data, error } = await supabase
-        .from('dailysales')
+        .from('inventory_dailysales')
         .select('*')
-        .eq('shopid', shopId)
-        .order('date', { ascending: true }); // On récupère tout, trié par date
+        // On filtre maintenant par la colonne de l'entreprise
+        // Assure-toi que ta table 'dailysales' utilise 'companyref' ou 'shopid'
+        .eq('companyref', companyRef) 
+        .order('date', { ascending: true });
 
       if (error) throw error;
 
       // 1. Agrégation par date (au cas où il y aurait des doublons historiques)
       const aggregatedSales = data.reduce((acc, current) => {
-        const dateStr = current.date.split('T')[0];
+        const dateStr = current.date.includes('T') ? current.date.split('T')[0] : current.date;
         const existing = acc.find(s => s.date.split('T')[0] === dateStr);
 
         if (existing) {
@@ -186,7 +177,7 @@ function RightHiddenbar() {
     try {
         // 1. Récupérer les commandes pour ce produit
         const { data: orders, error: orderError } = await supabase
-            .from('orders')
+            .from('inventory_orders')
             .select('*')
             .eq('productid', productId);
 
@@ -198,7 +189,7 @@ function RightHiddenbar() {
 
         // 3. Récupérer TOUS les produits concernés en UNE SEULE requête
         const { data: products, error: prodError } = await supabase
-            .from('products')
+            .from('inventory_products')
             .select('*')
             .in('id', uniqueIds);
 
@@ -216,72 +207,44 @@ function RightHiddenbar() {
     }
 };
 
-const updateDailySales = async (itemsSold, salesAmount) => {
-    const today = new Date().toISOString().split('T')[0];
-    
+const updateDailySales = async (cartItems) => {
     try {
-        // 1. Vérifier en base de données si la ligne pour "aujourd'hui" existe
-        const { data: existingData, error: fetchError } = await supabase
-            .from('dailysales')
-            .select('*')
-            .eq('shopid', shop.id)
-            .eq('date', today)
-            .maybeSingle(); // Récupère 1 ligne ou null
+        // 1. Calculer les totaux globaux du panier pour un seul appel RPC
+        const totalQty = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+        const totalAmount = cartItems.reduce((sum, item) => sum + parseFloat(item.total), 0);
 
-        if (fetchError) throw fetchError;
-
-        let updatedEntry;
-
-        if (existingData) {
-            // 2. MODIFIER : On additionne les valeurs existantes
-            const { data, error } = await supabase
-                .from('dailysales')
-                .update({
-                    nbsales: existingData.nbsales + itemsSold,
-                    totalamount: existingData.totalamount + salesAmount
-                })
-                .eq('id', existingData.id)
-                .select()
-                .single();
-            if (error) throw error;
-            updatedEntry = data;
-        } else {
-            // 3. CRÉER : Première vente du jour
-            const { data, error } = await supabase
-                .from('dailysales')
-                .insert([{
-                    shopid: shop.id,
-                    nbsales: itemsSold,
-                    totalamount: salesAmount,
-                    date: today
-                }])
-                .select()
-                .single();
-            if (error) throw error;
-            updatedEntry = data;
-        }
-
-        // 4. Mettre à jour le state local de manière propre (pour le graphique)
-        setDailySalesData(prevSales => {
-            // On retire l'ancienne entrée de "aujourd'hui" si elle existe dans le tableau
-            const filtered = prevSales.filter(s => s.date.split('T')[0] !== today);
-            
-            // On ajoute la nouvelle version mise à jour
-            const newData = [...filtered, {
-                ...updatedEntry,
-                nbSales: updatedEntry.nbsales, // On harmonise les noms de clés si nécessaire
-                totalAmount: updatedEntry.totalamount
-            }];
-
-            // On trie par date pour que le graphique soit cohérent
-            return newData.sort((a, b) => new Date(a.date) - new Date(b.date));
+        // 2. Appel RPC unique (beaucoup plus rapide et propre)
+        const { error } = await supabase.rpc('increment_daily_sales', {
+            target_companyref: shop.ref,
+            items_to_add: totalQty,      // On envoie le nombre total d'articles
+            amount_to_add: totalAmount   // On envoie le montant total
         });
 
-        // Mise à jour du compteur global
-        setTotalSales(prev => prev + itemsSold);
+        if (error) throw error;
+
+        // 3. Mise à jour du state local pour le graphique
+        const today = new Date().toISOString().split('T')[0];
+        setDailySalesData(prevSales => {
+            const existingIndex = prevSales.findIndex(s => s.date === today);
+            const newSales = [...prevSales];
+
+            if (existingIndex > -1) {
+                newSales[existingIndex].nbSales += totalQty;
+                newSales[existingIndex].totalAmount += totalAmount;
+            } else {
+                newSales.push({
+                    date: today,
+                    nbSales: totalQty,
+                    totalAmount: totalAmount
+                });
+            }
+            return newSales.sort((a, b) => new Date(a.date) - new Date(b.date));
+        });
+
+        setTotalSales(prev => prev + totalQty);
 
     } catch (err) {
-        console.error("Erreur lors de la mise à jour des ventes journalières :", err);
+        console.error("Erreur lors de l'incrémentation des ventes :", err);
     }
 };
 
@@ -346,7 +309,15 @@ const updateDailySales = async (itemsSold, salesAmount) => {
   const handleViewProduct = (productId) => {
     const foundProduct = productList.filter(p => p.id === productId)
     setProductToDisplay(foundProduct[0])
-    setViewProductOpen(!viewProductOpen)
+    setViewProductOpen(true)
+    setAddProductOpen(false)
+    setRemoveProductOpen(false)
+    setUpdateProductOpen(false)
+  };
+  const handleCloseViewProduct = (productId) => {
+    const foundProduct = productList.filter(p => p.id === productId)
+    setProductToDisplay(foundProduct[0])
+    setViewProductOpen(false)
     setAddProductOpen(false)
     setRemoveProductOpen(false)
     setUpdateProductOpen(false)
@@ -365,7 +336,8 @@ const updateDailySales = async (itemsSold, salesAmount) => {
 
   const handleOpenAddProduct = () => {
     setAddProductOpen(true);
-    setViewProductOpen(!viewProductOpen)
+    handleCloseUpdateProduct();
+    handleCloseRemoveProduct();
   };
   const handleCloseAddProduct = () => {
     setAddProductOpen(false);
@@ -391,7 +363,7 @@ const updateDailySales = async (itemsSold, salesAmount) => {
 
   const handleOpenRemoveProduct = () => {
     setRemoveProductOpen(true);
-    setViewProductOpen(!viewProductOpen)
+    setViewProductOpen(false)
   };
 
   const handleCloseRemoveProduct = () => {
@@ -419,7 +391,7 @@ const updateDailySales = async (itemsSold, salesAmount) => {
 
   const handleOpenUpdateProduct = () => {
     setUpdateProductOpen(true);
-    setViewProductOpen(!viewProductOpen)
+    setViewProductOpen(false)
   };
 
   const handleCloseUpdateProduct = () => {
@@ -444,10 +416,20 @@ const updateDailySales = async (itemsSold, salesAmount) => {
         });
     };
     const handleProductRemoveInList = (removedProduct) => {
-      const list = productList.filter(product => product.id !== removedProduct)
+      const list = productList.filter(product => product.ref !== removedProduct)
       setProductList(list)
     }
 
+    const  updateProductStock = (productId, newStock) => {
+      setProductList(prevProducts => {
+          return prevProducts.map(product => {
+            if(product.id === productId){
+              return { ...product, stock: newStock };
+            }
+            return product;
+          });
+      });
+  };
   const copyrightYear = new Date
 
   if (!isAppReady) {
@@ -458,114 +440,121 @@ const updateDailySales = async (itemsSold, salesAmount) => {
 
   return (
     <>
+    <div className="openstorm-scope">
    {(isAuthenticated && !isAppReady) ? <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '1.2rem', color: '#333' }}>{"Vérification de l'état de l'abonnement..."}</div>
       : (!shop ? <ShopSetupForm close={closeShopSetup} />
         : (<div className="dashboard">
-          {isBlocked && <RenewalForm close={closeRenewalForm} />}
-          <div className="dashboard-header">
-                <div className="dash-title">
-                  <h3>Shop Dashboard</h3>
+            {isBlocked && <RenewalForm close={closeRenewalForm} />}
+            
+            <aside className="dashboard-sidebar">
+                <div className="brand-section">
+                  <div className="dash-title">
+                    <h3>OpenStorm</h3>
+                    <span className="status-dot"></span>
+                  </div>
                   <Timer shop={shop} />
                 </div>
-                <div className="popularity">
-                  <div className="shop-infos">
-                    <p className="shopref">{shop.ref}</p>
-                    <h4>
-                      Shop :{shop && shop.name}
-                    </h4>
+                {stores.length > 1 && (
+                  <div className="store-selector-nav">
+                    <label>📍 Point de vente :</label>
+                    <select 
+                      value={currentStore?.id} 
+                      onChange={(e) => setCurrentStore(stores.find(s => s.id === parseInt(e.target.value)))}
+                    >
+                      {stores.map(s => (
+                        <option key={s.id} value={s.id}>{s.store_name}</option>
+                      ))}
+                    </select>
                   </div>
-                  <div className="shopImage">
-                    <img
-                      src={shop.image || defaultShop}
-                      style={{ borderRadius: "13px" }}
-                    />
+                )}
+                <div className="shop-card">
+                  <div className="shop-identity">
+                    <div className="shop-image-container">
+                      <img src={shop.image || defaultShop} alt="shop" />
+                    </div>
+                    <h4>{shop.name}</h4>
                   </div>
-                  <p className="shop-activity">Category: {shop.activity}</p>
-                  <div className="caisse">
-                    <h4>Cash : {currentCashAmount} $</h4>
-                  </div>
-                </div>
-                <div className="options">
-                  <Link to="/profile" className="settings">{'My Account >'}</Link>
-                  <Link to="/">Privacy Policy</Link>
-                  <Link to="/">Terms of Use</Link>
-                  <Link to="/">Support</Link>
                   
-                  <p>copyrights openstorm {copyrightYear.getFullYear()}. All rights reserved.</p>
+                  <div className="shop-details">
+                    <p className="category-tag">{shop.activity}</p>
+                    <div className="ref-badge">
+                      <UserComponent />
+                    </div>
+                  </div>
+                  <div className="balance-widget">
+                    <span className="label">Available Cash</span>
+                    <h4 className="amount">{currentCashAmount.toLocaleString()|| 0} $</h4>
+                  </div>
                 </div>
-          </div>
-          <div className="dash-data-ctn">
-            <div className="user-board">
-              <ul>
-                <li className="profile-elements selected" onClick={handleOpen}>
-                  Office
-                </li>
-                <li className="profile-elements" onClick={handleOpen}>
-                  Catalog
-                </li>
-                <li className="profile-elements cash-btn" onClick={handleOpen}>
-                  Cash
-                </li>
-                <li className="profile-elements" onClick={handleOpen}>
-                  Orders
-                </li>
-                {/*<li className="profile-elements" onClick={handleOpen}>
-                  Notifs.
-                </li>*/}
-              </ul>
-            </div>
-            <div ref={scrollContainerRef} className="dash-switcher">
+
+                <nav className="quick-links">
+                  <Link to="/profile" className="nav-link main">Account Settings</Link>
+                  <div className="legal-links">
+                    <Link to="/">Privacy</Link>
+                    <Link to="/">Terms</Link>
+                    <Link to="/">Support</Link>
+                  </div>
+                  <p className="copyright">© {copyrightYear.getFullYear()} OpenStorm  - OpenTask ERP</p>
+                </nav>
+            </aside>
+
+            <main className="dash-main-content">
+              <header className="main-nav-tabs">
+                <ul>
+                  {['Office', 'Catalog', 'Cash', 'Orders'].map((tab) => (
+                    <li 
+                      key={tab}
+                      className={`tab-item ${((tab === 'Office' && myAccountOpen) || (tab === 'Catalog' && catalogOpen) || (tab === 'Cash' && cashOpen) || (tab === 'Orders' && commandsOpen)) ? 'active' : ''}`} 
+                      onClick={handleOpen}
+                    >
+                      {tab}
+                    </li>
+                  ))}
+                </ul>
+              </header>
+
+              <section className="tab-content-wrapper">
               
               {myAccountOpen && (
-              <div className="cash">
-                <h3>Statistics</h3>
-                <div className="charts">
-                  <div className="chart-ctn">
-                    {dailySalesData.length > 0 ? (
-                      <HistogramComponent
-                        // On utilise nbsales pour le volume de ventes par jour
-                        salesData={dailySalesData.map(sale => sale.nbSales)} 
-                        // On affiche la date simplifiée
-                        labels={dailySalesData.map(sale => sale.date)}
-                        labTitle="Daily Sales (Last 7 Days)"
-                      />
-                    ) : (
-                      <div className="no-data-msg">No sales recorded this week.</div>
-                    )}
+                <div className="cash">
+                  <h3>Statistics</h3>
+                  <StockAlerts products={productList} threshold={10} />
+                  <div className="charts">
+                    <div className="chart-ctn">
+                      {dailySalesData.length > 0 ? (
+                        <HistogramComponent
+                          // On utilise nbsales pour le volume de ventes par jour
+                          salesData={dailySalesData.map(sale => sale.nbSales)} 
+                          // On affiche la date simplifiée
+                          labels={dailySalesData.map(sale => sale.date)}
+                          labTitle="Daily Sales (Last 7 Days)"
+                        />
+                      ) : (
+                        <div className="no-data-msg">No sales recorded this week.</div>
+                      )}
+                    </div>
+                    <div className="chart-ctn">
+                      {productsSalesData.length > 0 ? (
+                        <HistogramComponent
+                          // On passe les données nettoyées et triées
+                          salesData={productsSalesData.map(item => item.quantity)} 
+                          labels={productsSalesData.map(item => item.name)}
+                          labTitle="Top 5 Best Sellers"
+                        />
+                      ) : (
+                        <div className="no-data-msg" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                          <p>No sales data available yet.</p>
+                          <small>Sell products to see your Top 5 here!</small>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="chart-ctn">
-                    {productsSalesData.length > 0 ? (
-                      <HistogramComponent
-                        // On passe les données nettoyées et triées
-                        salesData={productsSalesData.map(item => item.quantity)} 
-                        labels={productsSalesData.map(item => item.name)}
-                        labTitle="Top 5 Best Sellers"
-                      />
-                    ) : (
-                      <div className="no-data-msg" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                        <p>No sales data available yet.</p>
-                        <small>Sell products to see your Top 5 here!</small>
-                      </div>
-                    )}
-                  </div>
-                </div>
                 
-                  
+                  <SalesHistory currentStore={currentStore} />
+
                   <h4>Total commands of the week</h4>
                   <p>{totalSales} items sold this week</p>
                   <div className="sold-data">
-                    {/*{bestSeller && (
-                      <ProductCard product={bestSeller} shop={shop} />
-                    )}
-                    {lessSeller && (
-                      <ProductCard viewProduct={handleViewProduct} product={lessSeller} shop={shop} />
-                    )}
-                    {mostFavourite && (
-                      <ProductCard viewProduct={handleViewProduct} product={mostFavourite} shop={shop} />
-                    )}
-                    {lessFavourite && (
-                      <ProductCard viewProduct={handleViewProduct} product={lessFavourite} shop={shop} />
-                    )}*/}
                   </div>
                 </div>
               )}
@@ -579,48 +568,30 @@ const updateDailySales = async (itemsSold, salesAmount) => {
                           className="green-btn"
                           onClick={handleAddProduct}
                         > Add Product
-                          <img
-                            src="frontend\src\assets\icons\add-plus-square-svgrepo-com.svg"
-                            alt="add product"
-                            width="20px"
-                            height="20px"
-                          />
                         </button>
                         <button
                           id="remove-btn"
                           className="red-btn"
                           onClick={handleRemoveProduct}
                         > Remove product
-                          <img
-                            src="frontend\src\assets\icons\dustbin-bin-trush-svgrepo-com.svg"
-                            alt="remove product"
-                            width="20px"
-                            height="20px"
-                          />
                         </button>
                         <button
                           id="update-btn"
                           className="blue-btn"
                           onClick={handleUdateProduct}
                         > Update product
-                          <img
-                            src="frontend\src\assets\icons\update-svgrepo-com.svg"
-                            alt="update product"
-                            width="20px"
-                            height="20px"
-                          />
                         </button>
                       </div>
                     <div className="commands">
                       {productList &&
                         productList.map((product) => (
-                          <ProductCard key={product.id} viewProduct={handleViewProduct} product={product} shop={shop} />
+                          <ProductCard key={product.id} viewProduct={handleViewProduct} product={product} shop={shop} updateProductStock={updateProductStock} />
                         ))}
                     </div>
                   </div>
                 </div>
               )}
-              {cashOpen && <Cash shop={shopDataForCash} products={productList} handleViewProduct={handleViewProduct} updateCash={updateCashAmount} updateSales={updateDailySales} />}
+              {cashOpen && <Cash shop={shopDataForCash} products={productList}  currentStore={currentStore} handleViewProduct={handleViewProduct} updateCash={refreshHistory} updateSales={updateDailySales} />}
               {commandsOpen && (
                 <div className="cash">
                   <h3>Orders</h3>
@@ -648,29 +619,43 @@ const updateDailySales = async (itemsSold, salesAmount) => {
                   </div>
                 </div>
               )}
-            </div>
-          </div>
+              </section>
+            </main>
             
 
           {addProductOpen && (
-            <AddProductForm shop={shop} close={handleCloseAddProduct} onProductAdded={handleProductAddedInList} />
+            <div className="overlay" onClick={handleCloseAddProduct}>
+              <div onClick={(e) => e.stopPropagation()}>
+                <AddProductForm shop={shop} close={handleCloseAddProduct} onProductAdded={handleProductAddedInList} />
+              </div>
+            </div>
+            
           )}
 
           {removeProductOpen && (
-            <RemoveProductForm products={productList} close={handleCloseRemoveProduct} onProductRemoved={handleProductRemoveInList}/>
+            <div className="overlay" onClick={handleCloseRemoveProduct}>
+              <div onClick={(e) => e.stopPropagation()}>
+                <RemoveProductForm products={productList} close={handleCloseRemoveProduct} onProductRemoved={handleProductRemoveInList}/>
+              </div>
+            </div>
           )}
 
           {updateProductOpen && (
-            <UpdateProductForm shop={shop} products={productList} close={handleCloseUpdateProduct} onProductUpdated={handleProductUpdateInList} />
+            <div className="overlay" onClick={handleCloseUpdateProduct}>
+              <div onClick={(e) => e.stopPropagation()}>
+                <UpdateProductForm shop={shop} products={productList} close={handleCloseUpdateProduct} onProductUpdated={handleProductUpdateInList} />
+              </div>
+            </div>
           )}
           {
             viewProductOpen && (
-              <ProductViewCard product={productToDisplay} close={handleViewProduct}/>
+              <ProductViewCard product={productToDisplay} close={handleCloseViewProduct}/>
             )
           }
         </div>)
       )
     }
+    </div>
     </>
     
   );

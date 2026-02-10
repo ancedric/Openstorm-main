@@ -10,7 +10,9 @@
     border-radius: 12px;
     background-color: #fff;
     overflow: hidden;
-    .prod-img{
+}
+
+.cash-card-ctn .prod-img{
         position: relative;
         display: flex;
         justify-content: center;
@@ -21,16 +23,17 @@
         margin: 0;
         padding: 0;
         overflow: hidden;
-        img{
+    }
+.cash-card-ctn img{
             width: 100%;
             height: 100%;
             transition: transform 0.3s ease;
             transform-origin: center;
         }
-        .zoom{
+        .cash-card-ctn .zoom{
             transform: scale(1.2);
         }
-        .img-overlay{
+        .cash-card-ctn .img-overlay{
             position: absolute;
             top:0;
             left:0;
@@ -41,27 +44,26 @@
             forced-color-adjust: #ffffff;
             width: 100%;
             height: 100%;
-            .view-btn{
+        }
+    .cash-card-ctn .view-btn{
                 border: 2px solid #ffffff;
                 width: 150px;
                 padding: 5px;
                 border-radius: 8px;
                 background-color: transparent;
                 cursor: pointer;
-                &:hover{
+            }
+    .cash-card-ctn .view-btn:hover{
                     border: 1px solid #ffffff;
                     background-color: #ffffff6e;
                 }
-            }
-        }
-        .prod-status{
+        .cash-card-ctn .img-overlay .prod-status{
             position: absolute;
             top: 5px;
             right: 5px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 13.5px;
             height: 20px;
             width: 100px;
             margin:0 5px;
@@ -69,21 +71,29 @@
             border-radius: 5px;
             box-shadow: 0, 0, 0.5, rgba(0, 0, 0, 0.1);
         }
-    }
-    .prod-infos{
+        .prod-status .status{
+            font-size: 0.8rem;
+            margin: 0;
+            padding: 0;
+            color: #fff;
+            font-weight: bold;
+        }
+    .cash-card-ctn .prod-infos{
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: space-between;
         align-items: center;
         margin: 0;
         width: 100%;
         height: 180px;
-        .prod-title{
+    }
+
+    .cash-card-ctn .prod-title{
             width: 100%;
             height: 50px;
             margin: 0;
         }
-        .product-title{
+        .cash-card-ctn .product-title{
             width: 100%;
             background-color: #007bff;
             color: #fff;
@@ -94,11 +104,12 @@
             font-size: 1.1rem;
             box-sizing: border-box;
         }
-        .price-data{
+        .cash-card-ctn .price-data{
             display: flex;
             justify-content: center;
             align-items: center;
-            .price{
+        }
+    .cash-card-ctn .price{
                 border: 2px solid green;
                 width: 80px;
                 height: 15px;
@@ -110,7 +121,7 @@
                 margin-bottom: 5px;
                 color: #2c0f4d;
             }
-            .reduction-rate{
+            .cash-card-ctn .reduction-rate{
                 border: 2px solid rgb(255, 60, 0);
                 width: 100px;
                 height: 15px;
@@ -122,7 +133,7 @@
                 margin-bottom: 5px;
                 margin-left: 5px;
             }
-            .green-submit-btn{
+            .cash-card-ctn .green-submit-btn{
                 background-color: #6b2ff7;
                 margin: 5px;
                 padding: 5px;
@@ -132,7 +143,3 @@
                 border-radius: 8px;
                 cursor: pointer;
             }
-        }
-    }
-        
-}

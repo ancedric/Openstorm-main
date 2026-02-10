@@ -16,39 +16,41 @@ function Topbar() {
     navigate("/home")
   }
   return (
-    <section className="topbar">
-      <div className="topbar-div ">
-        <div className="logo-img" onClick={backHome}>
-            <img
-              src={logo2}
-              alt="logo"
-            />
-        </div>
-        
-        <div className="topbar-profile">
-          <UserComponent />
-          <div className="hamburger-menu">
-            {!isOpen ? (
-              <button onClick={toggleMenu}>
-                <img
-                  src={logo2}
-                  width="40px"
-                  height="40px"
-                />
-              </button>
-            ) : (
-              <button onClick={handleCloseMenu}>
-                <img
-                  src="frontend\src\assets\icons\cross.svg"
-                  width="40px"
-                  height="40px"
-                />
-              </button>
-            )}
+    <div className="openstorm-scope">
+      <section className="topbar">
+        <div className="topbar-div ">
+          <div className="logo-img" onClick={backHome}>
+              <img
+                src={logo2}
+                alt="logo"
+              />
+          </div>
+          
+          <div className="topbar-profile">
+            <UserComponent />
+            <div className="hamburger-menu">
+              {!isOpen ? (
+                <button onClick={toggleMenu}>
+                  <img
+                    src={logo2}
+                    width="40px"
+                    height="40px"
+                  />
+                </button>
+              ) : (
+                <button onClick={handleCloseMenu}>
+                  <img
+                    src="frontend\src\assets\icons\cross.svg"
+                    width="40px"
+                    height="40px"
+                  />
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
 

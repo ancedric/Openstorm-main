@@ -1,8 +1,8 @@
-import './addProduct/style.css'
 import PropTypes from "prop-types";
 import { useState } from "react";
 import supabase from "../../supabase.config";
 import Toast from '../toast';
+import './orderForm.css'
 
 const OrderForm = ({ productId, currentQty, updateStock, onClick }) => {
   const [newQuantity, setQuantity] = useState(0);
@@ -21,12 +21,11 @@ const OrderForm = ({ productId, currentQty, updateStock, onClick }) => {
     event.preventDefault();
     try {
       console.log("Données à envoyer: ", productId, newQuantity)
-      //const res = await api.put(`/products/upgrade-stock/${productId}`, {quantity: quantity});
 
       const {data, error} = await supabase
-      .from('products')
-      .update({quantity: newQuantity})
-      .eq({id:  productId})
+      .from('inventory_products')
+      .update({stock: newQuantity})
+      .eq('id', productId)
       .select()
 
       if (data) {
@@ -47,9 +46,7 @@ const OrderForm = ({ productId, currentQty, updateStock, onClick }) => {
   };
 
   return (
-    <div className="order-form" style={{height:'200px'}}>
-      <div>
-        <h4>Add product stock</h4>
+    <div className="order-form">
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="quantity">Quantity</label>
@@ -64,19 +61,17 @@ const OrderForm = ({ productId, currentQty, updateStock, onClick }) => {
           <div className="buttons">
             <input
               type="submit"
-              className="green-submit-btn"
+              className="submit-btn"
               value="Save"
             />
-            <button type="button" className="red-close-btn" onClick={onClick}>
-              <img
-                src="\frontend\src\assets\icons\close-square-svgrepo-com.svg"
-                alt="close"
-                width="35px"
-              />
+            <button type="button" className="left-arrow-btn" onClick={onClick}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="#eee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
             </button>
           </div>
         </form>
-      </div>
       {toast.visible && <Toast message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, visible: false })} />}
     </div>
   );

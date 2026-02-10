@@ -1,0 +1,54 @@
+.openstorm-scope .stock-alerts-container {
+  background: #fff5f5; /* Fond rouge très pâle */
+  border-left: 4px solid #f56565;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.openstorm-scope .alert-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.openstorm-scope .alert-header h4 {
+  color: #c53030;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.openstorm-scope .alert-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.openstorm-scope .alert-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #fee2e2;
+}
+
+.openstorm-scope .stock-badge {
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.openstorm-scope .stock-badge.low {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.openstorm-scope .stock-badge.out {
+  background: #fee2e2;
+  color: #991b1b;
+}

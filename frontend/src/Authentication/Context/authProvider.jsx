@@ -1,334 +1,153 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useCallback, useEffect } from 'react';
-//import api from '../../axiosConfig';
-import bcrypt from 'bcryptjs';
 import supabase from '../../supabase.config';
 import AuthContext from './authContext';
 import PropTypes from 'prop-types';
 
-// Constante pour 24 heures en millisecondes
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
-
-// Composant de chargement simple pour l'attente
 const LoadingScreen = () => (
     <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh', 
-        fontSize: '1.5rem',
-        color: '#4f46e5' 
+        display: 'flex', justifyContent: 'center', alignItems: 'center', 
+        height: '100vh', fontSize: '1.2rem', color: '#4f46e5', fontFamily: 'sans-serif' 
     }}>
-        Chargement de la session...
+        Synchronisation avec OpenTask...
     </div>
 );
 
 const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [profile, setProfile] = useState(null);
-    const [shop, setShop] = useState(null);
+    const [shop, setShop] = useState(null); 
+    const [stores, setStores] = useState([]);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    // showShopSetup commence à false, il sera mis à jour par fetchShop
-    const [showShopSetup, setShowShopSetup] = useState(false); 
-    // Nouveau: Indique que la vérification initiale (auth + shop) est terminée
-    const [isAppReady, setIsAppReady] = useState(false); 
-
+    const [isAppReady, setIsAppReady] = useState(false);
 
     /**
-     * @description Met à jour le temps d'activation restant et l'heure de la dernière mise à jour côté serveur.
+     * Récupère les infos de l'entreprise via la table 'employe'
+     * en utilisant 'userref' comme pivot.
      */
-    const updateSubscriptionState = useCallback(async (shopRef, newRemainingDays) => {
-        console.log("DEBUG: Mise à jour:", shopRef, newRemainingDays)
-        const TABLE_NAME = 'shops'
+    const fetchCompanyInfo = useCallback(async (userRef) => {
+        if (!userRef) {
+            setShop(null);
+            setIsAppReady(true);
+            return;
+        }
+
         try {
-            console.log("DEBUG: Vérification de l'état d'activation de la boutique")
-            /*const response = await api.put(`/shops/update-subscription-state/${shopRef}`, {
-                remainingActivationTime: newRemainingDays, 
-                last_update_time: new Date().toISOString() 
-            });*/
-            const last_update_time = new Date().toISOString() 
+            // Jointure : on cherche l'employé et on récupère les infos de sa company
+            const { data: employeData, error } = await supabase
+                .from('employe')
+                .select(`
+                    companyref,
+                    company:companyref(*) 
+                `)
+                .eq('userref', userRef)
+                .single();
+            if (error) throw error
 
-            const { data } = await supabase
-            .from(TABLE_NAME)
-            .update({ 
-                remainingactivationtime: newRemainingDays,
-                last_update_time
-            })
-            .eq('ref', shopRef)
-            .select()
-            .single();
-
-
-            if (data) {
-                console.log("DEBUG: shop:", data)
-                // Mettre à jour l'état local avec la nouvelle boutique renvoyée par le serveur
-                setShop(data);
-                return data;
+            if (employeData && employeData.company) {
+                // Mapping pour que le reste de ton app React ne change pas
+                // On transforme l'objet 'company' en objet 'shop'
+                const companyAsShop = {
+                    ...employeData.company,
+                    ref: employeData.companyref, // On injecte la ref pour tes requêtes stock
+                    name: employeData.company.companyname // Ajuste selon le nom réel dans ta table company
+                };
+                
+                setShop(companyAsShop);
+                console.log("Module Stock : Entreprise chargée", companyAsShop.name);
+            } else {
+                console.warn("Aucune entreprise trouvée pour cet utilisateur.");
+                setShop(null);
             }
         } catch (error) {
-            console.error("Erreur lors de la mise à jour de l'état de l'abonnement:", error);
-            // Si l'erreur est critique (ex: 404), vous pourriez vouloir déconnecter l'utilisateur
+            console.error("Erreur lors de la récupération de l'entreprise:", error);
+        } finally {
+            setIsAppReady(true);
         }
-        return null;
     }, []);
 
     /**
-     * @description Vérifie l'expiration de l'abonnement et le décrémente si nécessaire.
+     * Vérifie si une session existe dans le localStorage (déposée par l'ERP Vue)
      */
-    const checkAndDecrementSubscription = useCallback(async (currentShop) => {
-        if (!currentShop || currentShop.remainingactivationtime === undefined) return;
-
-        const { remainingactivationtime, last_update_time, ref } = currentShop;
-
-        // Si c'est un nouvel utilisateur ou si le temps restant est > 0, on continue
-        if (remainingactivationtime === null || remainingactivationtime > 0) {
-            
-            // 1. Calculer la différence de temps depuis la dernière mise à jour
-            const lastUpdate = last_update_time ? new Date(last_update_time).getTime() : Date.now();
-            const now = Date.now();
-            const timeDiff = now - lastUpdate;
-            const daysPassed = Math.floor(timeDiff / DAY_IN_MS);
-
-            // Si au moins un jour s'est écoulé
-            if (daysPassed >= 1) {
-                const newRemainingDays = Math.max(0, remainingactivationtime - daysPassed);
+    const checkAuthStatus = useCallback(async () => {
+        const storedData = localStorage.getItem('user');
+        
+        if (storedData) {
+            try {
+                const session = JSON.parse(storedData); // session contient { user, employe, company }
                 
-                // Mettre à jour l'état côté serveur
-                return await updateSubscriptionState(ref, newRemainingDays);
-            }
-        }
-        return currentShop;
-
-    }, [updateSubscriptionState]);
-
-    /**
-     * @description Récupère les informations de la boutique de l'utilisateur.
-     * C'est ici qu'on gère le setShop et le setShowShopSetup.
-     */
-    const fetchShop = useCallback(async (userRef, shouldSetAppReady = true) => {
-        if (!userRef) {
-            console.warn("ATTENTION: fetchShop appelé sans userRef. Le chargement est terminé sans boutique.");
-            setShop(null);
-            setShowShopSetup(true);
-            if (shouldSetAppReady) {
-                setIsAppReady(true);
-            }
-            return; // Sortir immédiatement
-        }
-        try {
-            const TABLE_NAME = 'shops'
-            //const response = await api.get(`/shops/get-user-shop/${userRef}`);
-            const { data, error } = await supabase
-            .from(TABLE_NAME)
-            .select('*')
-            .eq('userref', userRef)
-            .single();
-
-            if (data) {
-                const shopData = data;
-                // Boutique trouvée
-                const currentShop = shopData;
+                // 1. On remplit l'utilisateur
+                setUser(session.user);
+                setProfile(session.employe);
+                setStores(session.stores || []);
                 
-                // Vérifier et décrémenter l'abonnement immédiatement
-                const updatedShop = await checkAndDecrementSubscription(currentShop);
-
-                setShop(updatedShop || currentShop);
-                setShowShopSetup(false);
-            } else {
-                // Aucune boutique trouvée: Afficher le formulaire de configuration
-                console.log("DEBUG: Aucune boutique trouvée. Affichage du ShopSetupForm.", error);
-                setShop(null); // S'assurer que shop est null
-                setShowShopSetup(true);
-            }
-        } catch (error) {
-            console.error("Erreur lors de la récupération de la boutique:", error);
-            // En cas d'erreur API, on suppose qu'il n'y a pas de boutique et on affiche le setup
-            setShop(null);
-            setShowShopSetup(true);
-        } finally {
-            if (shouldSetAppReady) {
-                // C'est la ligne CRUCIALE: Elle indique que la vérification initiale est terminée
-                setIsAppReady(true); 
-            }
-        }
-    }, [checkAndDecrementSubscription]);
-
-    const signIn = useCallback(async (email, password) => {
-        const TABLE_NAME = 'users';
-        try {
-            // 1. Appel API pour la connexion
-            //const response = await api.post('/user/login', { email, password });
-           const { data, error } = await supabase
-            .from(TABLE_NAME)
-            .select('*')
-            .eq('email', email)
-            .limit(1);
-            if (data){
-                if(bcrypt.compareSync(password, data[0].password)){
-                    const res = data[0];
-                    if (res) {
-                        localStorage.setItem('user', JSON.stringify(res));
-
-                        // Mettre à jour les états user et profile DIRECTEMENT
-                        setUser(res);
-                        setProfile(res); // Remplacement de fetchProfile
-                        setIsAuthenticated(true);
-                        
-                        // Charger la boutique associée
-                        await fetchShop(res.ref);
-
-                        return { success: true };
-                    }
-                    } else {
-                    throw new Error("Mot de passe incorrect");
-                }
-            } else {
-                throw new Error("Utilisateur non trouvé");
-            }
-
-            
-            // 2. Récupérer le token et les données utilisateur
-            /*const { token, user: userData } = response.data; 
-
-            if (token && userData) {
-                // Stocker le token dans localStorage et mettre à jour l'instance axios
-                localStorage.setItem('authToken', token);
-                api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-                // Mettre à jour les états user et profile DIRECTEMENT
-                setUser(userData);
-                setProfile(userData); // Remplacement de fetchProfile
                 setIsAuthenticated(true);
                 
-                // Charger la boutique associée
-                await fetchShop(userData.ref);
 
-                return { success: true };
-            }*/
-            return { success: false, message: `"Informations d'authentification incomplètes.", ${error}` };
+                // 2. On remplit l'entreprise (Shop) directement depuis la session Vue
+                if (session.company) {
+                    setShop({
+                        ...session.company,
+                        ref: session.company.companyref,
+                        name: session.company.companyname
+                    });
+                } else if (session.employe) {
+                    // Si la company n'est pas dans l'objet principal mais la ref est dans l'employé
+                    // On pourrait faire un fetch ici, mais normalement ton ERP Vue 
+                    // a déjà tout chargé lors de l'authentification.
+                    console.log("Company non présente, passage par l'employé...");
+                }
 
-        } catch (error) {
-            console.error("Erreur lors de la connexion:",  error.message);
-            // Nettoyage en cas d'échec
-            localStorage.removeItem('authToken');
-            //delete api.defaults.headers.common['Authorization'];
-            setUser(null);
-            setProfile(null);
-            setIsAuthenticated(false);
-            setShop(null);
-            return { success: false, message: "Erreur de connexion inconnue." };
+                setIsAppReady(true);
+                
+            } catch (e) {
+                console.error("Erreur de lecture de la session Vue:", e);
+                setIsAppReady(true);
+            }
+        } else {
+            setIsAppReady(true);
         }
-    }, [fetchShop]);
+    }, []);
+
+    // Initialisation au montage
+    useEffect(() => {
+        checkAuthStatus();
+        console.log("user from context:", user)
+        console.log('profile from context:', profile)
+    }, [checkAuthStatus]);
+
+    // Écouter les changements de localStorage (au cas où l'utilisateur se déconnecte de l'ERP)
+    useEffect(() => {
+        const handleStorageChange = (e) => {
+            if (e.key === 'user' && !e.newValue) {
+                signOut();
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
 
     const signOut = useCallback(() => {
-        localStorage.removeItem('token');
-        //delete api.defaults.headers.common['Authorization'];
+        // On ne vide pas forcément tout le localStorage pour ne pas déconnecter l'ERP,
+        // on réinitialise juste l'état local du module.
         setUser(null);
         setProfile(null);
         setShop(null);
         setIsAuthenticated(false);
-        setShowShopSetup(false);
-        setIsAppReady(true); // L'application est prête dans l'état déconnecté
+        setIsAppReady(true);
     }, []);
-
-    const checkAuthStatus = useCallback(async () => {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            try {
-                const userData = JSON.parse(storedUser); 
-                
-                setUser(userData);
-                setProfile(userData);
-                setIsAuthenticated(true);
-
-                // fetchShop gère déjà le setIsAppReady(true)
-                await fetchShop(userData.ref); 
-                
-            } catch (e) {
-                console.error("Erreur de parsing JSON ou de chargement initial:", e);
-                signOut(); // signOut va réinitialiser les états et appeler setIsAppReady(true)
-            }
-        } else {
-            setIsAppReady(true); 
-        }
-    }, [signOut, fetchShop]);
-
-    useEffect(() => {
-        checkAuthStatus();
-    }, [checkAuthStatus]);
-    // Hook d'initialisation au montage du composant pour la persistance de la session
-    /*useEffect(() => {
-        const checkSession = async () => {
-            const token = localStorage.getItem('user');
-            if (token) {
-                // Si un jeton existe, on le met pour les requêtes futures
-                //api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                
-                try {
-                    // Tenter de valider le jeton et de récupérer les infos de l'utilisateur
-                    const response = await api.get('/user/verify-token');
-                    const { user: userData } = response.data;
-                    
-                    setUser(userData);
-                    setIsAuthenticated(true);
-                    
-                    // Récupérer le profil et la boutique (cette fonction gère aussi isAppReady)
-                    const userRef = userData.ref;
-                    if (userRef) {
-                        await fetchShop(userRef);
-                    } else {
-                        setIsAppReady(true);
-                    }
-                    
-                } catch (error) {
-                    console.error("Échec de la vérification du jeton ou du chargement initial:", error);
-                    // Jeton invalide ou expiré: déconnexion
-                    signOut();
-                }
-            } else {
-                // Pas de jeton: déconnecté et prêt à rendre l'UI
-                setIsAppReady(true); 
-            }
-        };
-
-        checkSession();
-    }, [signOut, fetchShop]); */
-    
-    // Intervalle pour les sessions très longues: vérification toutes les 24h
-    useEffect(() => {
-        if (isAuthenticated && shop && shop.remainingactivationtime > 0) {
-            // Utiliser l'objet shop le plus récent dans le callback
-            const intervalId = setInterval(() => {
-                checkAndDecrementSubscription(shop);
-            }, DAY_IN_MS); 
-
-            return () => clearInterval(intervalId);
-        }
-    }, [isAuthenticated, shop, checkAndDecrementSubscription]);
-
-
-    const completeShopSetup = (newShopData) => {
-        setShop(newShopData);
-        setShowShopSetup(false);
-        // Lancer la vérification immédiatement après la configuration initiale
-        checkAndDecrementSubscription(newShopData);
-    };
 
     const value = { 
         user, 
         profile, 
         shop, 
+        stores,
         isAuthenticated, 
-        showShopSetup, 
-        // Renommé isSubscriptionCheckDone en isAppReady pour plus de clarté
         isAppReady, 
-        signIn, 
         signOut, 
-        fetchShop,
-        completeShopSetup 
+        fetch: fetchCompanyInfo // Alias pour éviter de casser tes imports ailleurs
     };
 
-    // Afficher un écran de chargement tant que l'état initial n'est pas déterminé
     if (!isAppReady) {
         return <LoadingScreen />;
     }
@@ -343,4 +162,5 @@ const AuthProvider = ({ children }) => {
 AuthProvider.propTypes = {
     children: PropTypes.node,
 };
+
 export default AuthProvider;

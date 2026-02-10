@@ -1,27 +1,31 @@
 import useAuth from './Context/useAuth'
-import { baseURL } from "../axiosConfig";
 import defaultAvatar from '../assets/images/Default-avatar.png'
-import { Link } from 'react-router-dom';
+import './user.css'
 
 const UserComponent = () => {
   const { profile } = useAuth()
+  const { user } = useAuth()
 
   return (
-    <div className="profile">
+    <div className="openstorm-scope">
+      <div className="profile">
         <div className='profile-data'>
-          {profile.role === 'admin' ? (<Link to="/admin" className='admin-link'>Admin</Link>) : ''}
+          {/*rofile.privilege === 'admin' ? (<Link to="/admin" className='admin-link'>Admin</Link>) : ''*/}
           <img
-            src={profile.photo ? `${baseURL}/media/${profile.photo}` : defaultAvatar}
-            alt={`${profile.firstname} ${profile.lastname}`}
+            src={user.profilephotourl || defaultAvatar}
+            alt={`${user.firstname} ${user.lastname}`}
             style={{ width: "40px", height: "40px", borderRadius: "50%" }}
           />
           <div className="data">
-            <h4>
-              {profile.firstname} {profile.lastname}
-            </h4>
+            <p>
+              {user.firstname} {user.lastname}
+            </p>
+            <span>{profile.position}</span>
           </div>
         </div>
+      </div>
     </div>
+    
   );
 };
 

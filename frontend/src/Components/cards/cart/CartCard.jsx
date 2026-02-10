@@ -1,6 +1,5 @@
 import './style.css'
 import PropTypes from "prop-types";
-import { baseURL } from "../../../axiosConfig";
 
 
 const CartCard = ({product, quantity, remove, updateQuantity}) => {
@@ -23,43 +22,39 @@ const CartCard = ({product, quantity, remove, updateQuantity}) => {
     return (
         <div className="cart-card-ctn">
             <div
-                className="prod-img"
+                className="img-product"
             >
                 <img
                 src={product.image}
                 alt={product.name}
                 style={{ width: "100%" }}
                 />
+            </div>
+            <div className="infos-product">
                 <div className="prod-title">
                     <h5 className="product-title">{product.name.toUpperCase()}</h5>
                 </div>
-            </div>
-            <div className="prod-infos">
-                
-                <p>{product.ref}</p>
-                <>
                 <div className="price-data">
                         <p className="price">Price: {finalPrice.toFixed(2)} $</p>
-                        {product.reduction && (
-                        <p className="reduction-rate">-{product.reduction}%</p>
+                        {product.reduction !== undefined && product.reduction !== 0 && (
+                        <p className="reduction-rate">Reduction: -{product.reduction}%</p>
                     )}
                     </div>
                     <div className="btn-div">
                         <div className="qty">
-                            <button onClick={decreaseQuantity}>{"-"}</button><p>{quantity}</p><button onClick={increaseQuantity}>{"+"}</button>
+                            <button className="qtyBtn" onClick={decreaseQuantity}>{"-"}</button><p>{quantity}</p><button className="qtyBtn" onClick={increaseQuantity}>{"+"}</button>
                         </div>
                         <button
                             onClick={handleRemove}
-                            className="red-submit-btn"
+                            className="submit-btn"
                         >
                             Remove
                         </button>
                     </div>
-                </>
             </div>
-            </div>
-    )
-    }
+        </div>
+    )}
+
     CartCard.propTypes = {
     product: PropTypes.shape({
         id: PropTypes.number.isRequired,

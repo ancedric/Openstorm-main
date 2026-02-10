@@ -8,7 +8,7 @@ import PropTypes from 'prop-types';
 const AddProductForm = ( {shop, close, onProductAdded}) => {
     const [productData, setProductData] = useState({
       ref: '',
-      shopRef: shop.ref,
+      companyRef: shop.ref,
       name: '',
       category: '',
       summary: '',
@@ -19,71 +19,61 @@ const AddProductForm = ( {shop, close, onProductAdded}) => {
     });
     const [toast, setToast] = useState({message:'', type:'', visible:false})
     const [file, setFile] = useState(null);
-    //const [imageUrl, setImageUrl] = useState(null)
+    const [isUploading, setIsUploading] = useState(false)
 
     const handleImageUpload = (event) => {
       setFile(event.target.files[0]);
     };
 
-    const handleProductAdd = async () => {
+    const handleProductAdd = async (event) => {
         event.preventDefault()
 
-        const formData = new FormData();
-        formData.append("ref", productData.ref);
-        formData.append("shopref", productData.shopRef);
-        formData.append("name", productData.name);
-        formData.append("category", productData.category);
-        formData.append("summary", productData.summary);
-        formData.append("description", productData.description);
-        formData.append("supplier", productData.supllier);
-        formData.append("price", productData.price);
-        formData.append("image", file);
+        setIsUploading(true)
+        const prodRef = `PROD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
         try {
-            /*const newProduct = await api.post(`/products/new-product`, formData, {
-                headers: { 
-                }
-            });*/
-
-            const fileExt = formData.image.name.split('.').pop();
+            if(!file) setToast({message: "Aucune image sélectionnée", type: "error", visible: true});
+            const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}.${fileExt}`;
             const filePath = `products/${fileName}`;
 
             // eslint-disable-next-line no-unused-vars
             const { data: uploadData, error: uploadError } = await supabase.storage
-                .from(import.meta.env.VITE_STORAGE_BUCKET_NAME)
-                .upload(filePath, formData.image);
+                .from('inventory_products_bucket')
+                .upload(filePath, file);
 
             if (uploadError) throw uploadError;
 
             const { data: urlData } = supabase.storage
-                .from(import.meta.env.VITE_STORAGE_BUCKET_NAME)
+                .from('inventory_products_bucket')
                 .getPublicUrl(filePath);
 
             const imageUrl = urlData.publicUrl;
 
             const {data, error }= await supabase
-            .from('products')
+            .from('inventory_products')
             .insert([{
-              ref: formData.ref,
-              shopRef: shop.ref,
-              name: formData.name,
-              category: formData.category,
-              summary: formData.summary,
-              description: formData.description,
-              supplier: formData.supplier,
-              price: formData.price,
+              ref: prodRef,
+              companyref: shop.ref,
+              name: productData.name,
+              category: productData.category,
+              summary: productData.summary,
+              description: productData.description,
+              supplier: productData.supplier,
+              price: productData.price,
               image: imageUrl
             }])
             .select()
 
             if(error){
-              console.error('Erreur lors de la mise à jour du produit')
+              console.error('Erreur lors de la mise à jour du produit', error)
+              setIsUploading(false)
               return
             }
             const newProduct = data
             if (newProduct) {
                 setToast({message: "Product added successfully", type: "success", visible: true});
-                onProductAdded(newProduct.data.product);
+                onProductAdded(newProduct[0]);
+                setIsUploading(false)
                 close()
             }
         }
@@ -105,14 +95,6 @@ const AddProductForm = ( {shop, close, onProductAdded}) => {
                 id="add-product-form"
               >
                 <div className="form-group dash">
-                  <label htmlFor="ref">Product reference</label>
-                  <input
-                    type="text"
-                    id="ref"
-                    name="ref"
-                    onChange={onChange}
-                    required
-                  />
                   <label htmlFor="name">Product name</label>
                   <input
                     type="text"
@@ -205,15 +187,14 @@ const AddProductForm = ( {shop, close, onProductAdded}) => {
                   )}
                 </div>
                 <div className="form-group dash">
-                  <button type="submit">Add product</button>
+                  <button type="submit" disabled={isUploading}>{isUploading? 'Uploading...' : 'Add product'}</button>
                 </div>
               </form>
               <button className="close-btn" onClick={close}>
-                <img
-                  src="frontend\src\assets\icons\close-square-svgrepo-com.svg"
-                  alt="close"
-                  width="35px"
-                />
+                <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="#54129b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
               </button>
           </div>
           
