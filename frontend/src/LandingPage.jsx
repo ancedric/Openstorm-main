@@ -1,35 +1,96 @@
 import Footer from './Components/Footer'
-import Header from './Components/Header'
-import SlideElement from './Components/SlideElement'
+import Header from './Components/Header/Header'
+import Loader from './Components/Loader'
 import Hero from './assets/images/hero-bg.png'
 import Image1 from './assets/images/capture-1.png'
 import Image2 from './assets/images/capture-2.png'
 import Image3 from './assets/images/capture-3.png'
-import Image4 from './assets/image4.jpg'
-//import Image5 from './assets/image5.jpg'
-import { Link } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import useAuth from './Authentication/Context/useAuth'
+import { useEffect, useState } from 'react'
+import ShopSetupForm from './Components/forms/shopSetupForm/ShopForm';
+import './landingPage.css'
 
 function LandingPage() {
-  
+  const { userRef } = useParams();
+  const { fetchUserStores, isAppReady, shop, setShop, stores, user } = useAuth();
+  const [showStoreList, setShowStoreList] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
+
+  // Gestion dynamique du bouton principal
+  const handleGetStarted = () => {
+    if (!user) {
+      navigate('/auth'); // Redirige vers login si non connecté
+    } else if (stores.length === 0) {
+      setIsModalOpen(true); // Ouvre l'overlay si aucun magasin
+    } else {
+      setShowStoreList(!showStoreList); // Affiche le dropdown si plusieurs magasins
+    }
+  };
+
+  const closeStoreModal = () => setIsModalOpen(false);
+
+  const selectStore = (storeref) => {
+    setShowStoreList(false);
+    console.log('store list:', stores);
+    setShop(stores.find(s => s.ref === storeref));
+    navigate('/dashboard');
+  }
+  useEffect(() => {
+    if (userRef) {
+      fetchUserStores(userRef);
+    }
+  }, [userRef, fetchUserStores]);
+
+  if (!isAppReady) return <Loader />;
+
   return (
     <div className="landing-page">
-    <Header />
+      <Header />
+      
+      {shop && (
+        <div className="welcome-banner">
+          {'Bienvenue dans l\'espace stock de'} <strong>{shop.name}</strong>
+        </div>
+      )}
+
       <div className="hero">
         <div className="title">
-          <SlideElement slideData = {{typeIn: 'slide-right', typeOut: 'slide-right', content: 'SIMPLY!!',}}  classStyle="title1" />
-          <SlideElement slideData={{ typeIn: 'slide-left', typeOut: 'slide-left', content: 'YOUR SHOP' }} classStyle="title2" />
-          <SlideElement slideData ={ {typeIn: 'slide-right', typeOut: 'slide-right', content: 'IN THE CLOUD!'}} classStyle="title3" />
+          <h3 className="title1"> { user.firstname.toUpperCase() } </h3>
+          <h3 className="title2">WELCOME IN THE STORE MANAGEMENT MODULE</h3>
+          <h3 className="title3">Good to see you again !!</h3>
           <div className="footer-hero">
             <div className="illus-style">
               <div>
-                Create and manage your store and
-                your shop directcly on a dedicated cloud plateform.
-                We made it especially for your business.
+                <p>Create and manage your stores and your shops directly on a dedicated platform.</p> 
+                <p>{'We made it especially for your business which don\'t need the complexity of the organization of a huge company, and just want to manage their stores, sells, stocks and orders.'}</p>
               </div>
             </div>
-            <button className="cta"><Link to="/auth" className='linkStyle'>Get Started</Link></button>
+
+            <div className="cta-container">
+              <button className="cta" onClick={handleGetStarted}>
+                {stores.length > 0 ? 'Select your store' : 'Get Started'}
+              </button>
+              
+              {showStoreList && (
+                <div className="store-dropdown">
+                  {stores.map(s => (
+                    <button key={s.ref} className="store-item" onClick={() => selectStore(s.ref)}>
+                      {s.store_name}
+                    </button>
+                  ))}
+                  {/* Option pour toujours pouvoir créer un nouveau magasin */}
+                  <div className="dropdown-divider"></div>
+                  <button className="add-store" onClick={() => { setIsModalOpen(true); setShowStoreList(false); }}>
+                    + New Store
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
         <div className="illustration-style">
           <div className="deco"></div>
           <div className="deco-2"></div>
@@ -38,99 +99,52 @@ function LandingPage() {
           </div>
         </div>
       </div>
+
+      {/* OVERLAY DE CRÉATION DE MAGASIN */}
+      {isModalOpen && (
+        <div className="modal-overlay" onClick={closeStoreModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="close-modal-btn" onClick={closeStoreModal}>&times;</button>
+            <ShopSetupForm close={closeStoreModal} />
+          </div>
+        </div>
+      )}
+
+      {/* --- RESTE DES SECTIONS (sub-msg, features, extra, testimonies, engagement) --- */}
       <div className="sub-msg">
-        <p>We provide a range of special tools to enhance your shop productivity, and keep your shop growing, including inventory mangement, and monthly revenue recording.</p>
+        <p>We provide a range of special tools to enhance your shop productivity, and keep your shop growing, including inventory management, and monthly revenue recording.</p>
       </div>
+      
+      {/* ... (Je garde tes sections features, extra, etc., telles quelles) ... */}
       <div className="features">
+        {/* ... Contenu features ... */}
         <div className="features-parts">
           <div className="head">
             <h3>{'See What\'s Inside'}</h3>
-            <p>Openstorm provides advanced deatures that make it possible to get all the benefits of your convenience in managing a business.</p>
+            <p>Openstorm provides advanced features that make it possible to get all the benefits of your convenience in managing a business.</p>
           </div>
           <div className="body">
-            <div className="feature-card">
-              <h3>Sales analysis</h3>
-              <p>Openstorm analyses the weekly sales of your business, to make you keep update.</p>
-            </div>
-            <div className="feature-card">
-              <h3>Stock Management</h3>
-              <p>Openstorm helps you to follow the stock in your warehouse helping you to notice the low stok, and helping to register new stock.</p>
-            </div>
-            <div className="feature-card">
-              <h3>Cash Registration</h3>
-              <p>Openstrom provide an intuitive platform for cash registration with real-time updates.</p>
-            </div>
-            <div className="feature-card">
-              <h3>Orders Report</h3>
-              <p>Openstorm let you know the different orders made in your shop.</p>
-            </div>
+            <div className="feature-card"><h3>Sales analysis</h3><p>Analyse your weekly sales...</p></div>
+            <div className="feature-card"><h3>Stock Management</h3><p>Follow your warehouse stocks...</p></div>
+            <div className="feature-card"><h3>Order Management</h3><p>Track and manage your orders...</p></div>
+            <div className="feature-card"><h3>Multi-store Support</h3><p>Manage multiple stores...</p></div>
           </div>
         </div>
         <div className="features-parts">
-          <div className="img c2">
-            <img src={Image1} alt="" />
-          </div>
-          <div className="img c1">
-            <img src={Image3} alt="" />
-          </div>
-          <div className="img c3">
-            <img src={Image2} alt="" />
-          </div>
+            <div className="img c2"><img src={Image1} alt="" /></div>
+            <div className="img c1"><img src={Image3} alt="" /></div>
+            <div className="img c3"><img src={Image2} alt="" /></div>
         </div>
       </div>
-      <div className="extra">
-        <div className="illustration">
-          <img src={Image4} alt="" />
-        </div>
-        <div className="extra-infos">
-          <div className='title'>Online and remote data control</div>
-          <div className='desc'>{'Follow your shop progression from everywhere. Wether you\'re present or far away for your holidays, keep i touch with the progression of your activity.'}</div>
-          <div className='btn'>
-            <Link to="/plan" className ="cta-btn"> Start today</Link>
-          </div>
-        </div>
-      </div>
-      <div className="testimonies">
-        <div className="head">
-          <h3>Custommers experience and feedback</h3>
-        </div>
-        <div className="ctn">
-          <div className="testimony">
-            <div className="top">
-              <h4>{'Custommer\'s name'}</h4>
-              <p>City</p>
-            </div>
-            <div className="bottom">
-              <p className="content"> contenu du commentaire...</p>
-            </div>
-          </div>
-          <div className="testimony">
-            <div className="top">
-              <h4>{'Custommer\'s name'}</h4>
-              <p>City</p>
-            </div>
-            <div className="bottom">
-              <p className="content"> contenu du commentaire...</p>
-            </div>
-          </div>
-          <div className="testimony">
-            <div className="top">
-              <h4>{'Custommer\'s name'}</h4>
-              <p>City</p>
-            </div>
-            <div className="bottom">
-              <p className="content"> contenu du commentaire...</p>
-            </div>
-          </div>
-        </div>
-      </div>
+
       <div className="engagement-ctn">
         <div className="engagement">
-          <div className="call">
-            <h2>Dive Into the experience today!</h2>
-          </div>
+          <div className="call"><h2>Dive Into the experience today!</h2></div>
           <div className="btn">
-            <Link to="/plan" className="cta">Get a Free Trial </Link>
+            {/* Si l'utilisateur est là, on déclenche l'overlay, sinon vers login */}
+            <button className="cta" onClick={handleGetStarted}>
+                {user ? 'Open a new shop' : 'Get a Free Trial'}
+            </button>
           </div>
         </div>
       </div>

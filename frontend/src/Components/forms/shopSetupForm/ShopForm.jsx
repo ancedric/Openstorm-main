@@ -1,275 +1,214 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useAuth from '../../../Authentication/Context/useAuth';
 import supabase from '../../../supabase.config';
-import {shopValidation} from '../../../Authentication/validation';
-import './style.css'
+import { shopValidation } from '../../../Authentication/validation';
 import FileUploader from '../../FileUploader';
-import PropTypes from 'prop-types';
-import Toast from '../../toast';
+import './style.css'
 
-const ShopSetupForm = ({close}) => {
-    const { user, completeShopSetup, fetchShop } = useAuth();
+const ShopSetupForm = () => {
+    const { user, profile, setShop, fetchUserStores } = useAuth();
     const [loading, setLoading] = useState(false);
-    const [toast, setToast] = useState({ message: '', type: '', visible: false });
-    const [error, setError] = useState({})
     const [shopImage, setShopImage] = useState(null);
-    const [activation, setActivation] = useState(0);
+    const [linkToCompany, setLinkToCompany] = useState(false);
+
     const [formData, setFormData] = useState({
         ref: '',
-        userRef: user.ref,
+        userRef: user?.userref || '',
         shopname: '',
         activity: '',
         openingHour: '',
-        closeHour:'',
+        closeHour: '',
         country: '',
         city: '',
-        remainingactivationtime: activation,
+        remainingactivationtime: 7,
         image: ''
-    })
+    });
 
-    if(user.plan === 'annual'){
-        setActivation(360)
-    }else if(user.plan === 'monthly'){
-        setActivation(30)
-    }else if(user.plan === 'biannual'){
-        setActivation(180)
-    }else{
-        setActivation(7)
-    }
-    const handleFileChange = (file) => {
-        setShopImage(file);
+    // INITIALISATION UNIQUE (Au montage du composant)
+    useEffect(() => {
+        if (user) {
+            // 1. Calcul de l'activation selon le plan
+            let activationDays = 7;
+            if (user.plan === 'annual') activationDays = 360;
+            else if (user.plan === 'monthly') activationDays = 30;
+            else if (user.plan === 'biannual') activationDays = 180;
+
+            // 2. Génération de la REF unique
+            const now = Date.now();
+            const year = new Date().getFullYear();
+            const generatedRef = `SHOP-${year}-${now}`;
+
+            setFormData(prev => ({
+                ...prev,
+                ref: generatedRef,
+                userRef: user.ref,
+                remainingactivationtime: activationDays
+            }));
+        }
+    }, [user]);
+
+    const handleFileChange = (file) => setShopImage(file);
+
+    const handleChange = (e) => {
+        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    //Creation de la ref
-    const now = Date.now();        
-    const year = new Date().getFullYear();
-    const _ref = `SHOP-${year}-${now}`;
-    setFormData((prev) => ({ ...prev, ref: _ref }));
-    
-    const handleChange = (event) => {
-        setFormData((prev) => ({ ...prev, [event.target.name]: event.target.value }));
-    };
-    
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Validation
         const validationErrors = shopValidation(formData);
-        setError(validationErrors);
-        // VÉRIFIER LES ERREURS DE VALIDATION AVANT DE CONTINUER
-        if (Object.keys(validationErrors).shopname==="" && Object.keys(validationErrors).activity==="") {
-            setToast({message: "Veuillez corriger les erreurs du formulaire.", type: "error", visible: true});
+        console.log('Validation Errors:', validationErrors);
+        if (validationErrors.activity !== "" || validationErrors.city !== "" || validationErrors.country !== "" || validationErrors.shopname !== "" || validationErrors.openingHour !== "" || validationErrors.closeHour !== "") {
+            console.log('Validator keys:', Object.keys(validationErrors).length)
             return;
         }
 
         setLoading(true);
-
+        console.log('Données soumises:', formData, 'Image:', shopImage, 'Liaison entreprise:', linkToCompany);
         try {
-            // 1. CRÉER UN NOUVEL OBJET FORM DATA
-            const dataToSend = new FormData();
-            
-            // 2. AJOUTER TOUTES LES DONNÉES DE L'ÉTAT React
-            Object.keys(formData).forEach(key => {
-                // On ignore l'ancienne clé 'image' de l'état, car elle est gérée séparément
-                if (key !== 'image') { 
-                    dataToSend.append(key, formData[key]);
-                }
-            });
+            let imageUrl = '';
 
-            // 3. AJOUTER LE FICHIER À PARTIR DE 'shopImage'
+            // 1. UPLOAD DE L'IMAGE (Si présente)
             if (shopImage) {
-                dataToSend.append('image', shopImage); 
-            } else {
-                dataToSend.append('image', null);
+                const fileExt = shopImage.name.split('.').pop();
+                const fileName = `${Date.now()}.${fileExt}`;
+                const filePath = `shops/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('stores_logo')
+                    .upload(filePath, shopImage);
+
+                if (uploadError) throw uploadError;
+
+                const { data: urlData } = supabase.storage
+                    .from('stores_logo')
+                    .getPublicUrl(filePath);
+                
+                imageUrl = urlData.publicUrl;
             }
 
-            //On enregistre le fichier
-            const fileExt = dataToSend.image.name.split('.').pop();
-            const fileName = `${Date.now()}.${fileExt}`;
-            const filePath = `shops/${fileName}`;
+            // 2. INSERTION DANS LA TABLE SHOPS
+            const { data, error: insertError } = await supabase
+                .from('inventory_stores')
+                .insert([
+                    {
+                        ref: formData.ref,
+                        owner_ref: user.userref,
+                        store_name: formData.shopname,
+                        activity: formData.activity,
+                        opening_hour: formData.openingHour,
+                        close_hour: formData.closeHour,
+                        country: formData.country,
+                        city: formData.city,
+                        remainingactivationtime: formData.remainingactivationtime,
+                        imageUrl: imageUrl,
+                        // LIAISON OPTIONNELLE À L'ENTREPRISE
+                        companyref: (linkToCompany && profile) ? profile.companyref : null
+                    }
+                ])
+                .select();
 
-            // 2. Uploader l'image dans le bucket Supabase
-            // eslint-disable-next-line no-unused-vars
-            const { data: uploadData, error: uploadError } = await supabase.storage
-                .from(import.meta.env.VITE_STORAGE_BUCKET_NAME)
-                .upload(filePath, dataToSend.image);
+            if (insertError) throw insertError;
 
-            if (uploadError) throw uploadError;
-
-            // 3. Récupérer l'URL publique de l'image (optionnel, selon votre besoin)
-            const { data: urlData } = supabase.storage
-                .from(import.meta.env.VITE_STORAGE_BUCKET_NAME)
-                .getPublicUrl(filePath);
-
-            const imageUrl = urlData.publicUrl;
-        
-            const { data, error } = await supabase
-            .from('shops')
-            .insert([
-                {
-                    ref: dataToSend.ref,
-                    userRef: user.ref,
-                    shopname: dataToSend.name,
-                    activity: dataToSend.activity,
-                    openinghour: dataToSend.openingHour,
-                    closehour:dataToSend.closeHour,
-                    country: dataToSend.country,
-                    city: dataToSend.city,
-                    remainingactivationtime: activation,
-                    image: imageUrl
-                }
-            ])
-            .select();
-            if(error) throw error
-            
-            const newShop = data
-            if (newShop) {
-                await completeShopSetup(newShop);
-                await fetchShop(user.ref)
-                close();
-                setToast({message:"Boutique créée avec succès!", type:"success", visible: true});
+            if (data) {
+                await setShop(data[0]);
+                await fetchUserStores(user.userref);
+                setTimeout(() => close(), 1500); // Ferme après un court délai
             }
-        } catch (error) {
-            console.error('Erreur lors de la création de la boutique:', error.response?.data || error.message);
-            setToast({message:"Échec de la création de la boutique. Veuillez réessayer.", type:"error", visible: true}); 
+        } catch (err) {
+            console.error('Erreur:', err.message);
         } finally {
             setLoading(false);
         }
     };
 
-    if (!user) return null;
-
     return (
         <div className="shop-form-ctn">
             <div className="form-header">
-                <h2 className="message">Welcome {user.firstname}!! Set up your shop !</h2>
-                <p className="">
-                    {'It seems like it\'s your first connexion. Let\'s set up your shop before continuing.'}
-                </p>
+                <h2>Configuration de votre boutique</h2>
+                <p>Donnez une identité à votre nouveau point de vente.</p>
             </div>
-            <div className="form-body">
-                <form onSubmit={handleSubmit}>
+
+            <form onSubmit={handleSubmit} className="form-body">
+                <div className="form-grid">
                     <div className="left">
-                        <h3>Shop identity</h3>
-                        <label htmlFor="shopname" className="">Shop name</label>
-                        <input
-                            type="text"
-                            name="shopname"
-                            onChange={handleChange}
-                            className="form-input"
-                            required
-                        />
-                        {error.shopName && <div className='danger'>{error.name}<br/></div>}
-                        <label htmlFor="activity" className="">Activity sector</label>
-                        <select
-                            name="activity"
-                            onChange={handleChange}
-                            className="form-input"
-                            required
-                        >
-                            **<option value="" disabled selected>Select an activity sector</option>**
-                            <option value="shopping">shopping</option>
-                            <option value="Restaurant">Restaurant</option>
-                            <option value="Library">Library</option>
-                            <option value="Interior design">Interior design</option>
-                            <option value="Flower & nature">Flower & nature</option>
-                            <option value="Services">Services</option>
-                            <option value="Hair style">Hair style</option>
-                            <option value="Cosmetics & esthetics">Cosmetics & esthetics</option>
-                            <option value="Computers & It">Computers & It</option>
-                            <option value="Mobile phones & accesories">Mobile phones & accesories</option>
-                            <option value="cars & motors">cars & motors</option>
-                            <option value="antiquitiest">antiquities</option>
-                            <option value="Electronics">Electronics</option>
-                            <option value="Japan">Jewels</option>
-                            <option value="Fast food">Fast food</option>
-                            <option value="Real estate">Real estate</option>
-                            <option value="Building & construction material">Building & construction material</option>
-                            <option value="QaWood industrytar">Wood industry</option>
-                            <option value="Health & medical care">Health & medical care</option>
-                            <option value="Food & fruits">Food & fruits</option>
-                            <option value="Meet & fish">Meet & fish</option>
-                            <option value="Sport accessories">Sport accessories</option>
+                        <label>Nom de la boutique</label>
+                        <input type="text" name="shopname" onChange={handleChange} required />
+                        
+                        <label>{'Secteur d\'activité'}</label>
+                        <select name="activity" onChange={handleChange} required>
+                            <option value="">Choisir...</option>
+                            <option value="shopping">Shopping / Mode</option>
+                            <option value="Restaurant">Restaurant / Café</option>
+                            <option value="Electronics">Électronique</option>
+                            <option value="Food & fruits">Alimentation</option>
                         </select>
-                        {error.activity && <div className='danger'>{error.activity}<br/></div>}
-                        <label htmlFor="country" className="">Country</label>
+
+                        {/* OPTION DE LIAISON À L'ENTREPRISE */}
+                        {profile && (
+                            <div className="company-link-card">
+                                <label className="checkbox-label">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={linkToCompany} 
+                                        onChange={(e) => setLinkToCompany(e.target.checked)} 
+                                    />
+                                    {'Lier à l\'entreprise '}<strong>{profile.companyname}</strong>
+                                </label>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="right">
+                        <label>Pays</label>
                         <select
                             name="country"
                             onChange={handleChange}
                             className="form-input"
                             required
                         >
-                            **<option value="" disabled selected>Select your country</option>**
+                            <option value="" disabled selected>Choisir votre pays</option>
                             <option value="Algeria">Algeria</option>
-                            <option value="Argentina">Argentina</option>
                             <option value="Belgium">Belgium</option>
-                            <option value="Brazil">Brazil</option>
-                            <option value="Burkina Faso">Burkina Faso</option>
                             <option value="Cameroon">Cameroon</option>
                             <option value="Canada">Canada</option>
-                            <option value="China">China</option>
-                            <option value="Egypt">Egypt</option>
                             <option value="France">France</option>
-                            <option value="Germany">Germany</option>
                             <option value="Ivory Coast">Ivory Coast</option>
-                            <option value="Italy">Italy</option>
-                            <option value="Japan">Japan</option>
-                            <option value="Korea">Korea</option>
                             <option value="Morocco">Morocco</option>
                             <option value="Nigeria">Nigeria</option>
-                            <option value="Qatar">Qatar</option>
-                            <option value="Switzerland">Switzerland</option>
-                            <option value="South Africa">South Africa</option>
-                            <option value="AUnited Kingdom">AUnited Kingdom</option>
+                            <option value="Senegal">Senegal</option>
                             <option value="United States">United States</option>
                         </select>
-                        {error.country && <div className='danger'>{error.country}<br/></div>}
-                        <label htmlFor="city" className="">City</label>
-                        <input
-                            type="text"
-                            name="city"
-                            onChange={handleChange}
-                            className="form-input"
-                            required
-                        />
-                        {error.city && <div className='danger'>{error.city}<br/></div>}
+                        <label>Ville</label>
+                        <input type="text" name="city" onChange={handleChange} required />
+                        
+                        <div className="hours-row">
+                            <div>
+                                <label>Ouverture</label>
+                                <input type="time" name="openingHour" onChange={handleChange} />
+                            </div>
+                            <div>
+                                <label>Fermeture</label>
+                                <input type="time" name="closeHour" onChange={handleChange} />
+                            </div>
+                        </div>
+
+                        <div className="brand-upload">
+                            <label>Logo / Image de la boutique</label>
+                            <FileUploader onFileChange={handleFileChange} />
+                        </div>
                     </div>
-                    <div className="middle">
-                        <h3>Opening interval</h3>
-                        <label htmlFor="openingHour" className="">opening hour</label>
-                        <input
-                            type="time"
-                            name="openingHour"
-                            onChange={handleChange}
-                            className="form-input"
-                            required
-                        />
-                        {error.openingHour && <div className='danger'>{error.openingHour}<br/></div>}
-                        <label htmlFor="closeHour" className="">Close hour</label>
-                        <input
-                            type="time"
-                            name="closeHour"
-                            onChange={handleChange}
-                            className="form-input"
-                            required
-                        />
-                        {error.closeHour && <div className='danger'>{error.closeHour}<br/></div>}
-                    </div>
-                    <div className="right">
-                        <h3>Shop brand</h3>
-                        <FileUploader onFileChange={handleFileChange} />
-                        <input
-                            type="submit"
-                            disabled={loading}
-                            className="submit-btn"
-                            value={loading ? 'Processing...' : 'Create my shop'}
-                        />
-                    </div>
-                </form>
-                {toast.visible && <Toast message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, visible: false })} />}
-            </div>
+                </div>  
+
+                <div className="form-actions">
+                    <button type="submit" disabled={loading} className="submit-btn">
+                        {loading ? 'Création en cours...' : 'Créer ma boutique'}
+                    </button>
+                </div>
+            </form>
         </div>
     );
 };
-ShopSetupForm.propTypes = {
-    close: PropTypes.func.isRequired
-}
+
 export default ShopSetupForm;

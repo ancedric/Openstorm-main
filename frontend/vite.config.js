@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import federation from '@originjs/vite-plugin-federation';
 
 export default defineConfig({
   server: {
@@ -26,17 +25,8 @@ export default defineConfig({
       "Access-Control-Allow-Origin": "*",
     }
   },
-  },
   plugins: [
-    react(),
-    federation({
-      name: 'OpenStorm',
-      filename: 'remoteEntry.js', // Le fichier "carte d'identité" du module
-      exposes: {
-        './OpenStormModule': './src/main.jsx', // On expose toute l'app Stock
-      },
-      shared: ['react', 'react-dom'] // On partage les librairies de base
-    }),
+    react()
   ],
   build: {
     modulePreload: false,

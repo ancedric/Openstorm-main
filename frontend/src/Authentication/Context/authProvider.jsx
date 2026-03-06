@@ -9,9 +9,15 @@ const LoadingScreen = () => (
         display: 'flex', justifyContent: 'center', alignItems: 'center', 
         height: '100vh', fontSize: '1.2rem', color: '#4f46e5', fontFamily: 'sans-serif' 
     }}>
-        Synchronisation avec OpenTask...
+        Synchronisation avec le serveur...
     </div>
 );
+
+const getUrlUserRef = () => {
+    const pathSegments = window.location.pathname.split('/');
+    // On prend le premier segment s'il n'est pas 'auth' ou vide
+    return (pathSegments[1] && pathSegments[1] !== 'auth') ? pathSegments[1] : null;
+};
 
 const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -22,99 +28,77 @@ const AuthProvider = ({ children }) => {
     const [isAppReady, setIsAppReady] = useState(false);
 
     /**
-     * Récupère les infos de l'entreprise via la table 'employe'
+     * Récupère les magasins associés à un utilisateur donné et vérifie s'il possède une entreprise (via la table employe).,
      * en utilisant 'userref' comme pivot.
      */
-    const fetchCompanyInfo = useCallback(async (userRef) => {
-        if (!userRef) {
-            setShop(null);
-            setIsAppReady(true);
-            return;
-        }
-
+    const fetchUserStores = useCallback(async (userRef) => {
+        if (!userRef) return;
         try {
-            // Jointure : on cherche l'employé et on récupère les infos de sa company
-            const { data: employeData, error } = await supabase
-                .from('employe')
-                .select(`
-                    companyref,
-                    company:companyref(*) 
-                `)
+            const { data: storesData } = await supabase
+                .from('inventory_stores')
+                .select('*')
+                .eq('owner_ref', userRef);
+            
+            setStores(storesData || []);
+
+            const {data:userData} = await supabase
+                .from('user')
+                .select('*')
                 .eq('userref', userRef)
                 .single();
-            if (error) throw error
 
-            if (employeData && employeData.company) {
-                // Mapping pour que le reste de ton app React ne change pas
-                // On transforme l'objet 'company' en objet 'shop'
-                const companyAsShop = {
-                    ...employeData.company,
-                    ref: employeData.companyref, // On injecte la ref pour tes requêtes stock
-                    name: employeData.company.companyname // Ajuste selon le nom réel dans ta table company
-                };
-                
-                setShop(companyAsShop);
-                console.log("Module Stock : Entreprise chargée", companyAsShop.name);
-            } else {
-                console.warn("Aucune entreprise trouvée pour cet utilisateur.");
-                setShop(null);
+            if (userData) {
+                setUser(userData);
+            }
+
+            const { data: employeData } = await supabase
+                .from('employe')
+                .select('*, company:companyref(*)') // On récupère TOUT l'employé + la company
+                .eq('userref', userRef)
+                .single();
+
+            if (employeData) {
+                setProfile(employeData);
+                setIsAuthenticated(true);
             }
         } catch (error) {
-            console.error("Erreur lors de la récupération de l'entreprise:", error);
+            console.error("Erreur sync:", error);
         } finally {
             setIsAppReady(true);
         }
     }, []);
 
-    /**
-     * Vérifie si une session existe dans le localStorage (déposée par l'ERP Vue)
-     */
     const checkAuthStatus = useCallback(async () => {
+        const urlUserRef = getUrlUserRef();
         const storedData = localStorage.getItem('user');
         
         if (storedData) {
             try {
-                const session = JSON.parse(storedData); // session contient { user, employe, company }
-                
-                // 1. On remplit l'utilisateur
-                setUser(session.user);
-                setProfile(session.employe);
-                setStores(session.stores || []);
-                
-                setIsAuthenticated(true);
-                
-
-                // 2. On remplit l'entreprise (Shop) directement depuis la session Vue
-                if (session.company) {
-                    setShop({
-                        ...session.company,
-                        ref: session.company.companyref,
-                        name: session.company.companyname
-                    });
-                } else if (session.employe) {
-                    // Si la company n'est pas dans l'objet principal mais la ref est dans l'employé
-                    // On pourrait faire un fetch ici, mais normalement ton ERP Vue 
-                    // a déjà tout chargé lors de l'authentification.
-                    console.log("Company non présente, passage par l'employé...");
+                const session = JSON.parse(storedData);
+                if (!urlUserRef || session.user.id === urlUserRef) {
+                    setUser(session.user);
+                    setProfile(session.employe);
+                    setStores(session.stores || []);
+                    setIsAuthenticated(true);
+                    setIsAppReady(true);
+                    return;
                 }
-
-                setIsAppReady(true);
-                
             } catch (e) {
-                console.error("Erreur de lecture de la session Vue:", e);
-                setIsAppReady(true);
+                console.error("Erreur session locale", e);
             }
+        }
+
+        if (urlUserRef) {
+            await fetchUserStores(urlUserRef);
         } else {
             setIsAppReady(true);
         }
-    }, []);
+    }, [fetchUserStores]);
 
-    // Initialisation au montage
+    // INITIALISATION : Une seule fois au montage
     useEffect(() => {
         checkAuthStatus();
-        console.log("user from context:", user)
-        console.log('profile from context:', profile)
-    }, [checkAuthStatus]);
+    }, [])
 
     // Écouter les changements de localStorage (au cas où l'utilisateur se déconnecte de l'ERP)
     useEffect(() => {
@@ -141,14 +125,16 @@ const AuthProvider = ({ children }) => {
         user, 
         profile, 
         shop, 
+        setShop,
         stores,
         isAuthenticated, 
         isAppReady, 
         signOut, 
-        fetch: fetchCompanyInfo // Alias pour éviter de casser tes imports ailleurs
+        fetchUserStores,
+        setProfile
     };
 
-    if (!isAppReady) {
+    if (isAppReady=== false) {
         return <LoadingScreen />;
     }
 

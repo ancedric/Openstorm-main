@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 import './style.css'
+import logo from  '../../../assets/images/corevia-logo-1.png'
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Cash from "../../cash/Cash";
@@ -25,13 +26,6 @@ import { fetchSalesHistory } from '../../../Authentication/shop';
 
 function RightHiddenbar() {
   const { shop, showShopSetup, completeShopSetup, isAuthenticated, isAppReady } = useAuth()
-
-  // Extraction sécurisée des données injectées par Pinia
-const sessionData = JSON.parse(localStorage.getItem('user') || '{}');
-const stores = sessionData.company?.stores || [];
-
-// État local pour le magasin sélectionné dans la session actuelle
-const [currentStore, setCurrentStore] = useState(stores[0] || null);
 
   const initialCash = shop && shop.cash !== undefined ? shop.cash : 0;
   const [currentCashAmount, setCurrentCashAmount] = useState(initialCash);
@@ -61,6 +55,7 @@ const [currentStore, setCurrentStore] = useState(stores[0] || null);
   const [isBlocked, setIsBlocked] = useState(false)
 
   useEffect(() => {
+    console.log('shop:', shop);
     if(shop && shop.id){
           const fetchProducts = async () => {
             try {
@@ -440,7 +435,6 @@ const updateDailySales = async (cartItems) => {
 
   return (
     <>
-    <div className="openstorm-scope">
    {(isAuthenticated && !isAppReady) ? <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '1.2rem', color: '#333' }}>{"Vérification de l'état de l'abonnement..."}</div>
       : (!shop ? <ShopSetupForm close={closeShopSetup} />
         : (<div className="dashboard">
@@ -449,30 +443,17 @@ const updateDailySales = async (cartItems) => {
             <aside className="dashboard-sidebar">
                 <div className="brand-section">
                   <div className="dash-title">
-                    <h3>OpenStorm</h3>
+                    <img src={logo} alt="logo" className="dash-logo" />
                     <span className="status-dot"></span>
                   </div>
                   <Timer shop={shop} />
                 </div>
-                {stores.length > 1 && (
-                  <div className="store-selector-nav">
-                    <label>📍 Point de vente :</label>
-                    <select 
-                      value={currentStore?.id} 
-                      onChange={(e) => setCurrentStore(stores.find(s => s.id === parseInt(e.target.value)))}
-                    >
-                      {stores.map(s => (
-                        <option key={s.id} value={s.id}>{s.store_name}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
                 <div className="shop-card">
                   <div className="shop-identity">
                     <div className="shop-image-container">
-                      <img src={shop.image || defaultShop} alt="shop" />
+                      <img src={shop.imageUrl || defaultShop} alt="shop" />
                     </div>
-                    <h4>{shop.name}</h4>
+                    <h4>{shop.store_name}</h4>
                   </div>
                   
                   <div className="shop-details">
@@ -550,7 +531,7 @@ const updateDailySales = async (cartItems) => {
                     </div>
                   </div>
                 
-                  <SalesHistory currentStore={currentStore} />
+                  <SalesHistory currentStore={shop} />
 
                   <h4>Total commands of the week</h4>
                   <p>{totalSales} items sold this week</p>
@@ -591,7 +572,7 @@ const updateDailySales = async (cartItems) => {
                   </div>
                 </div>
               )}
-              {cashOpen && <Cash shop={shopDataForCash} products={productList}  currentStore={currentStore} handleViewProduct={handleViewProduct} updateCash={refreshHistory} updateSales={updateDailySales} />}
+              {cashOpen && <Cash shop={shopDataForCash} products={productList}  currentStore={shop} handleViewProduct={handleViewProduct} updateCash={refreshHistory} updateSales={updateDailySales} />}
               {commandsOpen && (
                 <div className="cash">
                   <h3>Orders</h3>
@@ -655,7 +636,6 @@ const updateDailySales = async (cartItems) => {
         </div>)
       )
     }
-    </div>
     </>
     
   );
