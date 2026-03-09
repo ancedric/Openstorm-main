@@ -40,11 +40,13 @@ const Timer = ({ shop }) => {
 
   return (
     <div className={`clock ${isOpen() ? 'open' : 'closed'}`}>
-      {/* Affichage de l'heure locale formatée */}
-      {currentTime.toLocaleTimeString()} 
-      <p className={`time ${!isOpen() ? 'isClosed' : 'isOpen'}`}>
-        {!isOpen() ? 'closed' : 'open'}
-      </p>
+      {/* On peut utiliser un formatage plus court pour le mobile si on veut */}
+      <span className="time-digits">
+        {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      </span>
+      <div className={`status-indicator ${isOpen() ? 'isOpen' : 'isClosed'}`}>
+        <span className="status-text">{isOpen() ? 'open' : 'closed'}</span>
+      </div>
     </div>
   );
 };
