@@ -184,6 +184,10 @@
 }
 
   .tab-item {
+    position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   list-style: none;
   padding: 10px 22px;
   border-radius: 12px;
@@ -191,6 +195,29 @@
   font-weight: 600;
   color: #64748b; /* Gris ardoise pour les inactifs */
   transition: all 0.3s ease;
+}
+
+.cart-badge {
+  background-color: #ef4444; /* Rouge vif */
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 50%;
+  min-width: 18px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+/* --- LE BOUTON HAMBURGER (Dashboard) --- */
+.mobile-menu-toggle {
+  display: none; /* Caché par défaut sur PC */
 }
 
 .dash-title{
@@ -624,6 +651,40 @@
     font-size: 0.85rem;
     flex-shrink: 0;         /* Empêche les onglets de rétrécir */
   }
+  /* --- LE BADGE DE PANIER --- */
+
+
+  .mobile-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: rgba(84, 18, 155, 0.1);
+    color: #54129b;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .mobile-menu-toggle:active {
+    transform: scale(0.9);
+    background: rgba(84, 18, 155, 0.2);
+  }
+
+  /* Animation pour l'ouverture du menu latéral sur mobile */
+  .dashboard-sidebar {
+    transition: max-height 0.4s ease-in-out, padding 0.3s;
+    max-height: 60px; /* Taille repliée */
+    overflow: hidden;
+  }
+
+  .dashboard-sidebar.menu-open {
+    max-height: 100vh; /* Taille dépliée */
+    overflow-y: auto;
+  }
 
   /* 3. Zone de contenu principal */
   .dash-main-content {
@@ -694,4 +755,42 @@
   .dash-title h2 {
     font-size: 1.2rem;
   }
+}
+/* --- MENU HAMBURGER & INFOS MASQUÉES --- */
+@media (max-width: 992px) {
+  /* On crée un conteneur pour le bouton hamburger dans la sidebar mobile */
+  .brand-section {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  /* Si tu ajoutes un bouton <button className="hamburger"> dans ton JSX */
+  .mobile-menu-toggle {
+    display: block;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--primary);
+    cursor: pointer;
+  }
+
+  /* État quand on veut afficher les infos cachées (ajoute une classe .menu-open via JS) */
+  .dashboard-sidebar.menu-open {
+    height: auto;
+    flex-direction: column;
+    padding-bottom: 20px;
+  }
+
+  .dashboard-sidebar.menu-open .shop-card,
+  .dashboard-sidebar.menu-open .quick-links {
+    display: flex; /* On réaffiche les éléments */
+    width: 100%;
+    animation: fadeIn 0.3s ease;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

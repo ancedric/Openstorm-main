@@ -43,6 +43,7 @@ function RightHiddenbar() {
   const [viewProductOpen, setViewProductOpen] = useState(false)
   const [productToDisplay, setProductToDisplay] = useState(null)
   const [productsSalesData, setProductsSalesData] = useState([])
+  const [cartProducts, setCartProducts] = useState([])
 
   /*--Gestion du catalogue--*/
   const [commandsOpen, setCommandsOpen] = useState(false);
@@ -53,6 +54,7 @@ function RightHiddenbar() {
   const [updateProductOpen, setUpdateProductOpen] = useState(false);
   const [openShopSetup, setOpenShopSetup] = useState(showShopSetup)
   const [isBlocked, setIsBlocked] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     console.log('shop:', shop);
@@ -440,14 +442,16 @@ const updateDailySales = async (cartItems) => {
         : (<div className="dashboard">
             {isBlocked && <RenewalForm close={closeRenewalForm} />}
             
-            <aside className="dashboard-sidebar">
+            <aside className={`dashboard-sidebar ${isMobileMenuOpen ? 'menu-open' : ''}`}>
                 <div className="brand-section">
-                  <div className="dash-title">
-                    <Link to="https://getcorevia.netlify.app" target="_blank" rel="noopener noreferrer">
-                      <img src={logo} alt="logo" className="dash-logo" />
-                    </Link>
-                    <span className="status-dot"></span>
-                  </div>
+                  {/* Bouton Hamburger visible uniquement sur mobile via CSS */}
+                  <button className="mobile-menu-toggle" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                    {isMobileMenuOpen ? '✕' : '☰'}
+                  </button>
+                  
+                  <Link to="https://getcorevia.netlify.app" target="_blank">
+                    <img src={logo} alt="logo" className="dash-logo" />
+                  </Link>
                   <Timer shop={shop} />
                 </div>
                 <div className="shop-card">
@@ -491,6 +495,10 @@ const updateDailySales = async (cartItems) => {
                       onClick={handleOpen}
                     >
                       {tab}
+                      {/* Ajout du badge uniquement pour le Cash */}
+                      {tab === 'Cash' && cartProducts.length > 0 && (
+                        <span className="cart-badge">{cartProducts.length}</span>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -574,7 +582,7 @@ const updateDailySales = async (cartItems) => {
                   </div>
                 </div>
               )}
-              {cashOpen && <Cash shop={shopDataForCash} products={productList}  currentStore={shop} handleViewProduct={handleViewProduct} updateCash={refreshHistory} updateSales={updateDailySales} />}
+              {cashOpen && <Cash shop={shopDataForCash} products={productList} cartProducts={cartProducts} setCartProducts={setCartProducts} currentStore={shop} handleViewProduct={handleViewProduct} updateCash={refreshHistory} updateSales={updateDailySales} />}
               {commandsOpen && (
                 <div className="cash">
                   <h3>Orders</h3>

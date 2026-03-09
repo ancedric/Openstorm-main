@@ -118,3 +118,90 @@
   display: none;
   width: 0;
 }
+
+/* --- RESPONSIVE CASH (Point de Vente) --- */
+@media (max-width: 768px) {
+  .cash-ctn {
+    padding: 10px;
+    height: auto;
+  }
+
+  /* Header : On empile le montant total et la recherche */
+  .cash-ctn .cash-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .cash-ctn .header-left, 
+  .cash-ctn .header-right {
+    width: 100%;
+    margin: 0;
+    align-items: flex-start;
+  }
+
+  .cash-ctn .header-right {
+    flex-direction: row;
+    justify-content: space-between;
+    background: #f1f5f9;
+    padding: 10px;
+    border-radius: 10px;
+  }
+
+  /* Recherche : Input prend toute la largeur */
+  .cash-ctn input {
+    width: 100% !important;
+    margin: 10px 0;
+    box-sizing: border-box;
+  }
+
+  .autocomplete-wrapper {
+    width: 100%;
+  }
+
+  /* Liste de suggestions mobile-friendly */
+  .suggestions-list {
+    width: 100%;
+    max-height: 200px;
+    position: absolute;
+    z-index: 1001;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  /* Data : On passe du mode côte-à-côte au mode empilé */
+  .cash-ctn .cash-data {
+    flex-direction: column;
+    border-top: none;
+  }
+
+  /* Zone Produit Trouvé */
+  .cash-ctn .product-result {
+    width: 100%;
+    height: auto;
+    min-height: 150px;
+    overflow: visible;
+    padding: 10px 0;
+    border-bottom: 1px dashed #cbd5e1;
+  }
+
+  /* Le Panier (Cart) en bas */
+  .cash-ctn .cash-cart {
+    width: 100%;
+    height: auto;
+    min-height: 300px;
+    border-left: none;
+    padding: 15px 0;
+  }
+
+  /* Bouton de confirmation flottant ou large */
+  .confirm-btn {
+    width: 120px !important;
+    height: 45px;
+    font-weight: bold;
+  }
+
+  .cash-ctn p {
+    font-size: 1.1rem; /* Total un peu plus petit sur mobile */
+  }
+}

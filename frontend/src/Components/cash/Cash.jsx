@@ -8,12 +8,11 @@ import Cart from '../cart/cart'
 import Loader from "../Loader";
 import CashCard from "../cards/cash/CashCard";
 
-const Cash = ({ shop, products, currentStore, handleViewProduct, updateCash, updateSales }) => {
+const Cash = ({ shop, products, cartProducts, setCartProducts, currentStore, handleViewProduct, updateCash, updateSales }) => {
 
   const { stores } = useAuth();
   
   const amount = shop.cash; 
-  const [cartProducts, setCartProducts] = useState([])
   const [isSearching] = useState(false)
   const [isCartLoading, setIsCartLoading] = useState(false)
   const [suggestions, setSuggestions] = useState([]);
@@ -228,16 +227,14 @@ Cash.propTypes = {
     ref: PropTypes.string.isRequired,
     cash: PropTypes.number.isRequired,
     current_store_id: PropTypes.number,
-  }),
+  }).isRequired,
   products: PropTypes.arrayOf(Object).isRequired,
+  cartProducts: PropTypes.arrayOf(Object).isRequired,
+  setCartProducts: PropTypes.func.isRequired,
   currentStore: PropTypes.object,
   handleViewProduct: PropTypes.func.isRequired,
   updateCash: PropTypes.func.isRequired,
   updateSales: PropTypes.func.isRequired,
-  stores: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    store_name: PropTypes.string.isRequired,
-  }),
 };
 
 export default Cash;
