@@ -443,7 +443,9 @@ const updateDailySales = async (cartItems) => {
             <aside className="dashboard-sidebar">
                 <div className="brand-section">
                   <div className="dash-title">
-                    <img src={logo} alt="logo" className="dash-logo" />
+                    <Link to="https://getcorevia.netlify.app" target="_blank" rel="noopener noreferrer">
+                      <img src={logo} alt="logo" className="dash-logo" />
+                    </Link>
                     <span className="status-dot"></span>
                   </div>
                   <Timer shop={shop} />

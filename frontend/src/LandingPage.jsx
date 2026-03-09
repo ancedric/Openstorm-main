@@ -21,7 +21,7 @@ function LandingPage() {
   // Gestion dynamique du bouton principal
   const handleGetStarted = () => {
     if (!user) {
-      navigate('/auth'); // Redirige vers login si non connecté
+      navigate('/getcorevia.netlify.app'); // Redirige vers l'application principale si non connecté
     } else if (stores.length === 0) {
       setIsModalOpen(true); // Ouvre l'overlay si aucun magasin
     } else {
