@@ -564,3 +564,134 @@
 .dashboard::-webkit-scrollbar{
   display: none;
 }
+
+/* --- OPTIMISATION MOBILE (Max 992px) --- */
+@media (max-width: 992px) {
+  
+  /* On réinitialise le conteneur parent */
+  .dashboard {
+    flex-direction: column; /* La sidebar passe au dessus du contenu */
+    width: 100vw;           /* On revient à la largeur de l'écran */
+    height: 100vh;
+    overflow: hidden;       /* On laisse le scroll aux conteneurs internes */
+    position: relative;
+  }
+
+  /* 1. La Sidebar devient une barre supérieure compacte */
+  .dashboard-sidebar {
+    width: 100%;
+    height: auto;
+    padding: 10px 15px;
+    flex-direction: row;    /* Éléments alignés horizontalement */
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border-right: none;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+  }
+
+  /* On cache les détails inutiles sur mobile pour gagner de la place */
+  .shop-card, 
+  .quick-links, 
+  .balance-widget,
+  .shop-details {
+    display: none; 
+  }
+
+  /* On garde juste le logo et le Timer côte à côte */
+  .brand-section {
+    width: 100%;
+    justify-content: space-between;
+    flex-direction: row;
+  }
+
+  .dash-logo {
+    width: 80px; /* Logo plus petit */
+  }
+
+  /* 2. Navigation par Onglets (Tabs) */
+  .main-nav-tabs ul {
+    padding: 8px 15px;
+    gap: 8px;
+    overflow-x: auto;       /* Scroll horizontal pour les onglets */
+    white-space: nowrap;
+    background: #fff;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab-item {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    flex-shrink: 0;         /* Empêche les onglets de rétrécir */
+  }
+
+  /* 3. Zone de contenu principal */
+  .dash-main-content {
+    width: 100%;
+    height: calc(100vh - 120px); /* Ajuste selon la hauteur du header/tabs */
+  }
+
+  .tab-content-wrapper {
+    padding: 15px;
+    overflow-y: auto;
+  }
+
+  /* 4. Graphiques (Histogrammes) */
+  .charts {
+    flex-direction: column;
+    width: 100%;
+    gap: 15px;
+  }
+
+  .chart-ctn {
+    width: 100% !important; /* Force la carte à prendre toute la largeur */
+    height: auto;
+    min-height: 250px;
+    margin: 0;
+  }
+
+  /* 5. Catalogue et Grille de produits */
+  .commands {
+    justify-content: center; /* Centre les cartes de produits */
+    gap: 10px;
+  }
+
+  .commands .orders-group-ctn {
+    width: 100%;             /* Les groupes de commandes prennent toute la largeur */
+    margin: 10px 0;
+  }
+
+  /* 6. Boutons d'action (Ajouter, Supprimer, etc.) */
+  .buttons {
+    flex-direction: row;     /* On les garde en ligne ou on les wrap */
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .buttons button {
+    flex: 1;                 /* Les boutons prennent une part égale */
+    min-width: 120px;
+    font-size: 0.75rem;
+    padding: 12px 5px;
+    justify-content: center;
+  }
+
+  /* 7. Overlay (Formulaires Add/Update) */
+  .overlay > div {
+    width: 95%;              /* Le formulaire prend presque tout l'écran */
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* --- Ajustement spécifique pour le "Cash" (Point de vente) --- */
+@media (max-width: 760px) {
+  .cash {
+    padding: 10px;
+  }
+  
+  .dash-title h2 {
+    font-size: 1.2rem;
+  }
+}
