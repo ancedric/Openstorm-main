@@ -575,3 +575,165 @@
   
 };
 /*--End of landingpage--*/
+
+/* --- RESPONSIVE LANDING PAGE --- */
+
+@media screen and (max-width: 992px) {
+  .landing-page {
+    height: auto; /* On laisse le contenu définir la hauteur */
+  }
+
+  /* 1. Hero Section : On empile le texte et l'image */
+  .landing-page .hero {
+    flex-direction: column;
+    height: auto;
+    padding: 100px 20px 40px 20px; /* Plus d'espace en haut pour le header */
+    margin-top: 0;
+    gap: 40px;
+  }
+
+  .landing-page .hero .title {
+    width: 100%;
+    order: 1; /* Le texte reste en premier */
+  }
+
+  .landing-page .hero .title .title1, 
+  .landing-page .hero .title .title2, 
+  .landing-page .hero .title .title3 {
+    font-size: 1.6rem;
+    height: auto;
+    margin-bottom: 10px;
+  }
+
+  /* Illustration du Hero */
+  .landing-page .hero .illustration-style {
+    width: 90%;
+    height: 300px;
+    order: 2;
+    display: flex; /* On s'assure qu'elle s'affiche */
+  }
+
+  /* 2. Message principal (Sub-msg) */
+  .landing-page .sub-msg {
+    height: auto;
+    padding: 60px 20px;
+  }
+
+  .landing-page .sub-msg p {
+    width: 100%;
+    font-size: 1.4rem; /* Réduction de 2.5rem à 1.4rem */
+    line-height: 1.4;
+  }
+
+  /* 3. Features Section */
+  .landing-page .features {
+    height: auto;
+    padding: 40px 10px;
+    flex-direction: column;
+  }
+
+  .landing-page .features .features-parts {
+    width: 100%;
+    height: auto;
+    position: relative;
+  }
+
+  /* Gestion des images qui se chevauchent en bas des features */
+  .landing-page .features .features-parts .img {
+    position: relative; /* On les remet dans le flux normal pour mobile */
+    width: 100% !important;
+    height: 250px !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    margin-bottom: 20px;
+  }
+
+  /* 4. Témoignages (Testimonies) */
+  .landing-page .testimonies {
+    height: auto;
+    padding-bottom: 50px;
+  }
+
+  .landing-page .testimonies .ctn {
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+  }
+
+  .landing-page .testimonies .testimony {
+    width: 90%;
+  }
+
+  /* 5. Section Engagement (CTA Final) */
+  .landing-page .engagement-ctn {
+    padding-top: 40px;
+  }
+
+  .landing-page .engagement-ctn .engagement {
+    width: 95%;
+    height: auto;
+    padding: 40px 15px;
+    margin: 10px;
+    border-radius: 20px;
+  }
+
+  .landing-page .engagement-ctn .engagement .call h2 {
+    font-size: 1.5rem;
+  }
+
+  .landing-page .engagement-ctn .engagement .btn .cta {
+    width: 100%;
+    font-size: 1.1rem;
+  }
+
+  /* 6. Modale de création de store */
+  .modal-content {
+    width: 95%;
+    margin: 10px;
+    padding-top: 50px; /* Espace pour le bouton fermer */
+  }
+}
+
+/* Ajustements pour très petits écrans */
+@media screen and (max-width: 480px) {
+  .landing-page .hero .title .title1 { font-size: 1.4rem; }
+  .landing-page .hero .title .title2 { font-size: 1.2rem; }
+  
+  .store-dropdown {
+    width: 90vw; /* Presque toute la largeur sur petit mobile */
+  }
+  
+  .cta {
+    width: 100% !important;
+    margin: 10px 0 !important;
+  }
+}
+
+/* --- SCROLL REVEAL ANIMATIONS --- */
+
+/* État initial : invisible et décalé vers le bas */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s ease-out;
+}
+
+/* État quand l'élément entre dans le champ de vision */
+.reveal.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Optionnel : On peut varier les directions */
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-50px);
+  transition: all 0.8s ease-out;
+}
+
+.reveal-left.active {
+  opacity: 1;
+  transform: translateX(0);
+}

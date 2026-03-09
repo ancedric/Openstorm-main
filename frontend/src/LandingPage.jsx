@@ -43,6 +43,28 @@ function LandingPage() {
     }
   }, [userRef, fetchUserStores]);
 
+  useEffect(() => {
+  const revealCallback = (entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('active');
+        // On peut arrêter d'observer une fois l'animation jouée
+        observer.unobserve(entry.target);
+      }
+    });
+  };
+
+  const observer = new IntersectionObserver(revealCallback, {
+    threshold: 0.1 // L'élément doit être visible à 10% pour déclencher
+  });
+
+  // On cible toutes les sections que l'on veut animer
+  const targets = document.querySelectorAll('.reveal, .reveal-left');
+  targets.forEach(target => observer.observe(target));
+
+  return () => observer.disconnect();
+}, []);
+
   if (!isAppReady) return <Loader />;
 
   return (
@@ -57,9 +79,9 @@ function LandingPage() {
 
       <div className="hero">
         <div className="title">
-          <h3 className="title1"> { user.firstname.toUpperCase() } </h3>
-          <h3 className="title2">WELCOME IN THE STORE MANAGEMENT MODULE</h3>
-          <h3 className="title3">Good to see you again !!</h3>
+          <h3 className="title1 reveal"> { user.firstname.toUpperCase() } </h3>
+          <h3 className="title2 reveal">WELCOME IN THE STORE MANAGEMENT MODULE</h3>
+          <h3 className="title3 reveal">Good to see you again !!</h3>
           <div className="footer-hero">
             <div className="illus-style">
               <div>
@@ -119,15 +141,15 @@ function LandingPage() {
       <div className="features">
         {/* ... Contenu features ... */}
         <div className="features-parts">
-          <div className="head">
+          <div className="head reveal">
             <h3>{'See What\'s Inside'}</h3>
             <p>Openstorm provides advanced features that make it possible to get all the benefits of your convenience in managing a business.</p>
           </div>
           <div className="body">
-            <div className="feature-card"><h3>Sales analysis</h3><p>Analyse your weekly sales...</p></div>
-            <div className="feature-card"><h3>Stock Management</h3><p>Follow your warehouse stocks...</p></div>
-            <div className="feature-card"><h3>Order Management</h3><p>Track and manage your orders...</p></div>
-            <div className="feature-card"><h3>Multi-store Support</h3><p>Manage multiple stores...</p></div>
+            <div className="feature-card reveal"><h3>Sales analysis</h3><p>Analyse your weekly sales...</p></div>
+            <div className="feature-card reveal"><h3>Stock Management</h3><p>Follow your warehouse stocks...</p></div>
+            <div className="feature-card reveal"><h3>Order Management</h3><p>Track and manage your orders...</p></div>
+            <div className="feature-card reveal"><h3>Multi-store Support</h3><p>Manage multiple stores...</p></div>
           </div>
         </div>
         <div className="features-parts">
