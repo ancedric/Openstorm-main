@@ -28,6 +28,7 @@ export default defineConfig({
   plugins: [
     react()
   ],
+  base: '/',
   build: {
     modulePreload: false,
     target: 'esnext',
