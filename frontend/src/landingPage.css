@@ -487,6 +487,113 @@
       }
     }
   }
+  @media screen and (max-width: 992px) {
+    height: auto; /* On laisse le contenu définir la hauteur */
+
+  /* 1. Hero Section : On empile le texte et l'image */
+  .hero {
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+    padding: 120px 20px 40px 20px; /* Plus d'espace en haut pour le header */
+    margin-top: 0;
+    gap: 40px;*
+      .title {
+      width: 100%;
+      order: 1; /* Le texte reste en premier */
+      .title1, .title2, .title3 {
+        font-size: 1.6rem;
+        height: auto;
+        margin-bottom: 10px;
+      }
+
+    }
+    .illustration-style {
+      display: none; /* On s'assure qu'elle s'affiche */
+    }
+    .sub-msg {
+      height: auto;
+      padding: 60px 20px;
+      p {
+        width: 100%;
+        font-size: 1.4rem; /* Réduction de 2.5rem à 1.4rem */
+        line-height: 1.4;
+      }
+    }
+    .features {
+      height: auto;
+      padding: 40px 10px;
+      flex-direction: column;
+      .features-parts {
+        width: 100%;
+        height: auto;
+        position: relative;
+        .img {
+          position: relative; /* On les remet dans le flux normal pour mobile */
+          width: 100% !important;
+          height: 250px !important;
+          top: auto !important;
+          left: auto !important;
+          right: auto !important;
+          bottom: auto !important;
+          margin-bottom: 20px;
+        }
+
+      }
+    }
+    .testimonies {
+      height: auto;
+      padding-bottom: 50px;
+      .ctn {
+        flex-direction: column;
+        align-items: center;
+        gap: 25px;
+      }
+      .testimony {
+        width: 90%;
+      }
+    }
+    .engagement-ctn {
+      padding-top: 40px;
+      .engagement {
+        width: 95%;
+        height: auto;
+        padding: 40px 15px;
+        margin: 10px;
+        border-radius: 20px;
+        .call h2 {
+          font-size: 1.5rem;
+        }
+        .btn .cta {
+          width: 100%;
+          font-size: 1.1rem;
+        }
+      }
+    }
+  }
+
+  /* 6. Modale de création de store */
+  .modal-content {
+    width: 95%;
+    margin: 10px;
+    padding-top: 50px; /* Espace pour le bouton fermer */
+  }
+}
+
+/* Ajustements pour très petits écrans */
+@media screen and (max-width: 480px) {
+  .landing-page .hero .title .title1 { font-size: 1.4rem; width: 100%; background: red; }
+  .landing-page .hero .title .title2, .landing-page .hero .title .title3 { font-size: 1.2rem; width: 100%;}
+  
+  .store-dropdown {
+    width: 90vw; /* Presque toute la largeur sur petit mobile */
+  }
+  
+  .cta {
+    width: 100% !important;
+    margin: 10px 0 !important;
+  }
+}
   
 };
 /*--End of landingpage--*/
