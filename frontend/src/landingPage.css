@@ -511,15 +511,6 @@
     .illustration-style {
       display: none; 
     }
-    .sub-msg {
-      height: auto;
-      padding: 60px 20px;
-      p {
-        width: 100%;
-        font-size: 1rem; /* Réduction de 2.5rem à 1.4rem */
-        line-height: 1.4;
-      }
-    }
     .features {
       height: auto;
       padding: 40px 10px;
@@ -572,6 +563,15 @@
       }
     }
   }
+  .sub-msg {
+      height: auto;
+      padding: 60px 20px;
+      p {
+        width: 100%;
+        font-size: 1rem; /* Réduction de 2.5rem à 1.4rem */
+        line-height: 1.4;
+      }
+    }
 
   /* 6. Modale de création de store */
   .modal-content {
