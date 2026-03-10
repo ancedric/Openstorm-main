@@ -511,28 +511,6 @@
     .illustration-style {
       display: none; 
     }
-    .features {
-      height: auto;
-      padding: 40px 10px;
-      font-size: 1rem;;
-      flex-direction: column;
-      .features-parts {
-        width: 100%;
-        height: auto;
-        position: relative;
-        .img {
-          position: relative; /* On les remet dans le flux normal pour mobile */
-          width: 100% !important;
-          height: 250px !important;
-          top: auto !important;
-          left: auto !important;
-          right: auto !important;
-          bottom: auto !important;
-          margin-bottom: 20px;
-        }
-
-      }
-    }
     .testimonies {
       height: auto;
       padding-bottom: 50px;
@@ -570,6 +548,28 @@
         width: 100%;
         font-size: 1rem; /* Réduction de 2.5rem à 1.4rem */
         line-height: 1.4;
+      }
+    }
+    .features {
+      height: auto;
+      padding: 40px 10px;
+      font-size: 1rem;;
+      flex-direction: column;
+      .features-parts {
+        width: 100%;
+        height: auto;
+        position: relative;
+        .img {
+          position: relative; /* On les remet dans le flux normal pour mobile */
+          width: 100% !important;
+          height: 250px !important;
+          top: auto !important;
+          left: auto !important;
+          right: auto !important;
+          bottom: auto !important;
+          margin-bottom: 20px;
+        }
+
       }
     }
 
