@@ -596,10 +596,9 @@
   .landing-page .hero .title .title1, 
   .landing-page .hero .title .title2, 
   .landing-page .hero .title .title3 {
-    font-size: 1.2rem;
+    font-size: 1.6rem;
     height: auto;
     margin-bottom: 10px;
-    background: red;
   }
 
   /* Illustration du Hero */
@@ -695,7 +694,7 @@
 
 /* Ajustements pour très petits écrans */
 @media screen and (max-width: 480px) {
-  .landing-page .hero .title .title1 { font-size: 1.4rem; }
+  .landing-page .hero .title .title1 { font-size: 1.4rem; background: red; }
   .landing-page .hero .title .title2 { font-size: 1.2rem; }
   
   .store-dropdown {
