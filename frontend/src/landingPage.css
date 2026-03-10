@@ -694,8 +694,8 @@
 
 /* Ajustements pour très petits écrans */
 @media screen and (max-width: 480px) {
-  .landing-page .hero .title .title1 { font-size: 1.4rem; background: red; }
-  .landing-page .hero .title .title2 { font-size: 1.2rem; }
+  .landing-page .hero .title .title1 { font-size: 1.4rem; width: 100%; background: red; }
+  .landing-page .hero .title .title2, .landing-page .hero .title .title3 { font-size: 1.2rem; width: 100%;}
   
   .store-dropdown {
     width: 90vw; /* Presque toute la largeur sur petit mobile */
