@@ -18,6 +18,7 @@
   }
 
   .hero{
+    background-color: yellow;
     width: 100%;
     height: calc(100vh - 70px);
     margin-top:70px;
