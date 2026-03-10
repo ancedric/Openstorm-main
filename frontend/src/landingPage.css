@@ -523,9 +523,6 @@
 
   /* Illustration du Hero */
   .landing-page .hero .illustration-style {
-    width: 90%;
-    height: 300px;
-    order: 2;
     display: none; /* On s'assure qu'elle s'affiche */
   }
 
