@@ -526,7 +526,7 @@
     width: 90%;
     height: 300px;
     order: 2;
-    display: flex; /* On s'assure qu'elle s'affiche */
+    display: none; /* On s'assure qu'elle s'affiche */
   }
 
   /* 2. Message principal (Sub-msg) */
