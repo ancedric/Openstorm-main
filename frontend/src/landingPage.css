@@ -509,7 +509,7 @@
 
     }
     .illustration-style {
-      display: none; /* On s'assure qu'elle s'affiche */
+      display: none; 
     }
     .sub-msg {
       height: auto;
@@ -523,6 +523,7 @@
     .features {
       height: auto;
       padding: 40px 10px;
+      font-size: 1rem;;
       flex-direction: column;
       .features-parts {
         width: 100%;
@@ -580,8 +581,8 @@
   }
   /* Ajustements pour très petits écrans */
   @media screen and (max-width: 480px) {
-    .hero .title .title1 { font-size: 1.4rem; width: 100%; background: red; }
-    .hero .title .title2, .landing-page .hero .title .title3 { font-size: 1.2rem; width: 100%;}
+    .hero .title .title1 { font-size: 1.4rem; width: 100%;}
+    .hero .title .title2, .hero .title .title3 { font-size: 1.2rem; width: 100%;}
     
     .store-dropdown {
       width: 90vw; /* Presque toute la largeur sur petit mobile */
