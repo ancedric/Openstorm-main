@@ -582,6 +582,7 @@
   /* 1. Hero Section : On empile le texte et l'image */
   .landing-page .hero {
     flex-direction: column;
+    width: 100%;
     height: auto;
     padding: 100px 20px 40px 20px; /* Plus d'espace en haut pour le header */
     margin-top: 0;
