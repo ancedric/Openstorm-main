@@ -584,7 +584,7 @@
     flex-direction: column;
     width: 100%;
     height: auto;
-    padding: 100px 20px 40px 20px; /* Plus d'espace en haut pour le header */
+    padding: 120px 20px 40px 20px; /* Plus d'espace en haut pour le header */
     margin-top: 0;
     gap: 40px;
     background-color: yellow;
